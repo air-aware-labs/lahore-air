@@ -29,24 +29,6 @@
     border:1px solid var(--line)!important;width:34px;height:34px;line-height:34px
   }
   .leaflet-control-scale-line{background:var(--glass);border-color:rgba(255,255,255,.35)!important;color:#fff}
-  .leaflet-tooltip.mon-tip{
-    background:rgba(12,10,16,.92);border:1px solid var(--line);color:#fff;
-    border-radius:8px;padding:7px 10px;font:600 12px/1.35 system-ui,sans-serif;
-    box-shadow:0 12px 32px rgba(0,0,0,.4)
-  }
-  .leaflet-tooltip.mon-tip:before{border-top-color:rgba(12,10,16,.92)}
-  .mon-tip small{display:block;font-weight:500;color:rgba(255,255,255,.6);margin-top:2px}
-  .sensor-chip{background:none!important;border:0!important}
-  .sensor-chip .pill{
-    display:flex;align-items:center;gap:5px;
-    background:rgba(10,8,14,.88);border:1px solid rgba(255,255,255,.85);
-    border-radius:999px;padding:2px 7px 2px 4px;
-    color:#fff;font:700 11px/1.1 ui-monospace,Menlo,system-ui,sans-serif;
-    white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.45);
-  }
-  .sensor-chip .pill.ref{border-color:#ff610a}
-  .sensor-chip .swatch{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 0 1px rgba(255,255,255,.5)}
-  .sensor-chip .muted{opacity:.55;font-weight:600}
 
   .brand{
     position:fixed;left:max(20px,env(safe-area-inset-left));top:max(16px,env(safe-area-inset-top));
@@ -92,14 +74,21 @@
   .clock{font:600 15px/1 ui-monospace,Menlo,monospace;min-width:4.8ch;text-align:center}
   #scrub{width:min(38vw,260px);accent-color:#ff610a;cursor:pointer}
 
-  .key{
+  .chart{
     position:fixed;left:max(20px,env(safe-area-inset-left));bottom:max(22px,env(safe-area-inset-bottom));
-    z-index:500;font:600 11px/1.6 system-ui,sans-serif;color:var(--dim);
-    text-shadow:0 4px 16px #000;
+    z-index:500;width:256px;padding:12px 12px 10px;
+    background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 18px 50px rgba(0,0,0,.4);
+    font-family:system-ui,-apple-system,sans-serif;
   }
-  .key i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
-  .key .ref{background:#fff;box-shadow:0 0 0 2px #ff610a}
-  .key .sens{background:#d45b5b;border:1.5px solid #fff}
+  .chart-head b{display:block;font:650 12px/1.2 system-ui,sans-serif;color:#fff}
+  .chart-head span{display:block;margin:3px 0 8px;font:500 10px/1.3 system-ui,sans-serif;color:var(--dim)}
+  #chart{display:block;width:100%;height:92px;cursor:ew-resize}
+  .chart-key{display:flex;gap:12px;margin-top:6px;font:600 10px/1 system-ui,sans-serif;color:var(--dim)}
+  .chart-key i{display:inline-block;width:12px;height:2px;margin-right:5px;vertical-align:middle;border-radius:2px}
+  .chart-key .k-city i{background:#fff}
+  .chart-key .k-site i{background:var(--accent)}
 
   #probe{
     position:fixed;left:0;top:0;z-index:700;pointer-events:none;display:none;
@@ -111,13 +100,16 @@
   #probe .u{font:600 11px system-ui,sans-serif;color:var(--dim);margin-left:5px}
   #probe small{display:block;margin-top:4px;font:500 11px/1.25 system-ui,sans-serif;color:var(--dim);max-width:22ch;overflow:hidden;text-overflow:ellipsis}
 
+  @media (max-width:900px){
+    .chart{bottom:96px}
+  }
   @media (max-width:700px){
     .logos img{height:22px}.logos .aal{height:26px}
     .title h1{font-size:2.1rem}
     .legend{top:auto;bottom:96px;transform:none}
     .dock{width:calc(100% - 20px);border-radius:22px}
     #scrub{width:100%;flex:1 1 100%}
-    .key{display:none}
+    .chart{width:min(256px, calc(100% - 28px))}
   }
 </style>
 </head>
@@ -140,11 +132,17 @@
     <span>220</span><span>150</span><span>75</span><span>0 µg/m³</span>
   </div>
 </div>
-<div class="key">
-  <div><i class="ref"></i>Reference monitor</div>
-  <div><i class="sens"></i>Sensor — coloured by this hour</div>
-  <div style="opacity:.75">Same scale as the streets</div>
-</div>
+<aside class="chart" id="chart-card">
+  <div class="chart-head">
+    <b>Measured that day</b>
+    <span>Neighbourhood sensors, not the model</span>
+  </div>
+  <svg id="chart" viewBox="0 0 232 92" role="img" aria-label="Sensor readings over 24 hours"></svg>
+  <div class="chart-key">
+    <span class="k-city"><i></i>City median</span>
+    <span class="k-site"><i></i>Forman College</span>
+  </div>
+</aside>
 <div class="dock">
   <div class="seg">
     <button type="button" id="btn-winter" aria-pressed="true">January</button>
@@ -160,9 +158,10 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const STOPS = [[0,244,233,212],[0.18,232,176,122],[0.38,214,92,78],[0.58,176,52,110],[0.78,92,44,130],[1,32,14,56]];
+const YMAX = 300;
 let season="winter", hour=9, playing=false, timer=null;
-let overlay, map, payload, grids={}, roadLayer, roadLines=[], monitorMarks=[];
-let buckets=new Map(), lastLL=null, lastXY=null;
+let overlay, map, payload, grids={}, roadLayer, roadLines=[];
+let buckets=new Map(), lastLL=null, lastXY=null, measured=null;
 const HIT=0.00042;
 const probe=()=>document.getElementById("probe");
 
@@ -270,33 +269,72 @@ function paintRoads(){
     L.setStyle({ color: hexAt(val/payload.vmax) });
   }
 }
-function reading(m){
-  const arr = (m[season] || []);
-  return arr[hour];
-}
-function chipIcon(m, val){
-  const isRef = m.kind==="reference";
-  const n = (val==null) ? "—" : String(Math.round(val));
-  const col = (val==null) ? "#444" : hexAt(val/payload.vmax);
-  return L.divIcon({
-    className: "sensor-chip",
-    html: `<div class="pill${isRef?" ref":""}"><span class="swatch" style="background:${col}"></span><span class="${val==null?"muted":""}">${n}</span></div>`,
-    iconSize: [52, 22],
-    iconAnchor: [10, 11]
-  });
-}
-function paintMonitors(){
-  for(const mark of monitorMarks){
-    const m = mark._meta;
-    const val = reading(m);
-    const isRef = m.kind==="reference";
-    mark.setIcon(chipIcon(m, val));
-    const kind = isRef ? "Reference monitor" : "Neighbourhood sensor";
-    const line = (val==null)
-      ? "No reading this hour"
-      : `${Math.round(val)} µg/m³ · ${kind}${m.network?" · "+m.network:""}`;
-    mark.setTooltipContent(`<div class="mon-tip"><b>${m.name}</b><small>${line}</small></div>`);
+function hourlyMedian(monitors, key){
+  const out=Array(24).fill(null);
+  for(let h=0;h<24;h++){
+    const vals=[];
+    for(const m of monitors){
+      const v=(m[key]||[])[h];
+      if(v!=null && Number.isFinite(v)) vals.push(v);
+    }
+    if(!vals.length) continue;
+    vals.sort((a,b)=>a-b);
+    const n=vals.length, mid=Math.floor(n/2);
+    out[h]=n%2 ? vals[mid] : (vals[mid-1]+vals[mid])/2;
   }
+  return out;
+}
+function seriesOf(monitor, key){
+  if(!monitor) return Array(24).fill(null);
+  const arr=monitor[key]||[];
+  return Array.from({length:24}, (_,h)=> (arr[h]==null ? null : arr[h]));
+}
+function pathFrom(series, xOf, yOf){
+  let d="", pen=false;
+  for(let h=0;h<24;h++){
+    const v=series[h];
+    if(v==null){ pen=false; continue; }
+    d += (pen?"L":"M") + xOf(h).toFixed(1) + " " + yOf(v).toFixed(1) + " ";
+    pen=true;
+  }
+  return d;
+}
+function drawChart(){
+  const svg=document.getElementById("chart");
+  if(!svg || !measured) return;
+  const W=232, H=92, L=26, R=8, T=8, B=18;
+  const iw=W-L-R, ih=H-T-B;
+  const xOf=h=> L + h/23*iw;
+  const yOf=v=> T + (1-clamp(v,0,YMAX)/YMAX)*ih;
+  const city=measured[season].city;
+  const site=measured[season].site;
+  const cityNow=city[hour], siteNow=site[hour];
+  const ticks=[0,150,300].map(v=>{
+    const y=yOf(v);
+    return `<line x1="${L}" y1="${y}" x2="${W-R}" y2="${y}" stroke="rgba(255,255,255,.08)"/>
+      <text x="${L-4}" y="${y+3}" text-anchor="end" fill="rgba(246,241,234,.45)" font-size="8" font-family="system-ui">${v}</text>`;
+  }).join("");
+  const hours=[0,9,18].map(h=>{
+    return `<text x="${xOf(h)}" y="${H-4}" text-anchor="middle" fill="rgba(246,241,234,.45)" font-size="8" font-family="ui-monospace,Menlo,system-ui">${pad(h)}</text>`;
+  }).join("");
+  const xh=xOf(hour);
+  let mark="";
+  if(cityNow!=null){
+    mark += `<circle cx="${xh}" cy="${yOf(cityNow)}" r="3.2" fill="#fff"/>`;
+  }
+  if(siteNow!=null){
+    mark += `<circle cx="${xh}" cy="${yOf(siteNow)}" r="2.6" fill="#ff610a"/>`;
+  }
+  const label = cityNow==null ? "" : `${Math.round(cityNow)}`;
+  svg.innerHTML = `
+    ${ticks}
+    <line x1="${xh}" y1="${T}" x2="${xh}" y2="${H-B}" stroke="rgba(255,97,10,.85)" stroke-width="1"/>
+    <path d="${pathFrom(city,xOf,yOf)}" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="${pathFrom(site,xOf,yOf)}" fill="none" stroke="#ff610a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${mark}
+    ${hours}
+    ${label ? `<text x="${Math.min(xh+6, W-R)}" y="${T+9}" fill="#fff" font-size="9" font-family="ui-monospace,Menlo,system-ui">${label}</text>` : ""}
+  `;
 }
 function story(){
   document.getElementById("story").textContent = payload.story[season];
@@ -309,7 +347,7 @@ function setFrame(h){
   hour=((h%24)+24)%24;
   if(overlay) overlay.setUrl(src());
   paintRoads();
-  paintMonitors();
+  drawChart();
   story();
   if(lastLL) updateProbe();
 }
@@ -328,6 +366,11 @@ Promise.all([
   payload=data;
   grids.winter=decode(data.grids.winter);
   grids.june=decode(data.grids.june);
+  const site=(data.monitors||[]).find(m => /Forman Christian/i.test(m.name||""));
+  measured={
+    winter:{ city:hourlyMedian(data.monitors||[], "winter"), site:seriesOf(site, "winter") },
+    june:{ city:hourlyMedian(data.monitors||[], "june"), site:seriesOf(site, "june") }
+  };
   const hlRoads = hl.roads || data.roads;
   map=L.map("map",{
     zoomControl:false, attributionControl:true, preferCanvas:true,
@@ -355,20 +398,7 @@ Promise.all([
     indexRoad(line);
   }
   paintRoads();
-
-  const sensorPane = map.createPane("sensors");
-  sensorPane.style.zIndex = 650;
-  for(const m of data.monitors){
-    const mark=L.marker([m.lat,m.lon],{
-      icon: chipIcon(m, null),
-      pane: "sensors",
-      keyboard: false
-    }).addTo(map);
-    mark._meta=m;
-    mark.bindTooltip("", {direction:"top", opacity:1, className:"mon-tip"});
-    monitorMarks.push(mark);
-  }
-  paintMonitors();
+  drawChart();
 
   map.fitBounds(data.bounds,{padding:[20,20]});
   story();
@@ -382,6 +412,14 @@ Promise.all([
   map.getContainer().addEventListener("mouseleave", ()=>{
     lastLL=null;
     probe().style.display="none";
+  });
+
+  const svg=document.getElementById("chart");
+  svg.addEventListener("pointerdown", e=>{
+    const rect=svg.getBoundingClientRect();
+    const x=(e.clientX-rect.left)/rect.width*232;
+    const t=clamp((x-26)/(232-26-8),0,1);
+    setFrame(Math.round(t*23));
   });
 });
 
