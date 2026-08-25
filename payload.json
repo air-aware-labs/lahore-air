@@ -1,0 +1,224 @@
+{
+  "city": "Lahore",
+  "bounds": [
+    [
+      31.359999237060546,
+      74.19999938964844
+    ],
+    [
+      31.659999313354493,
+      74.49999755859375
+    ]
+  ],
+  "center": [
+    31.5497,
+    74.3436
+  ],
+  "vmax": 210.0,
+  "hours": {
+    "winter": [
+      {
+        "hour": 0,
+        "median": 119.8
+      },
+      {
+        "hour": 1,
+        "median": 125.6
+      },
+      {
+        "hour": 2,
+        "median": 132.0
+      },
+      {
+        "hour": 3,
+        "median": 137.2
+      },
+      {
+        "hour": 4,
+        "median": 141.8
+      },
+      {
+        "hour": 5,
+        "median": 154.0
+      },
+      {
+        "hour": 6,
+        "median": 162.2
+      },
+      {
+        "hour": 7,
+        "median": 168.7
+      },
+      {
+        "hour": 8,
+        "median": 181.2
+      },
+      {
+        "hour": 9,
+        "median": 184.3
+      },
+      {
+        "hour": 10,
+        "median": 147.1
+      },
+      {
+        "hour": 11,
+        "median": 84.0
+      },
+      {
+        "hour": 12,
+        "median": 60.4
+      },
+      {
+        "hour": 13,
+        "median": 53.3
+      },
+      {
+        "hour": 14,
+        "median": 51.5
+      },
+      {
+        "hour": 15,
+        "median": 53.1
+      },
+      {
+        "hour": 16,
+        "median": 56.4
+      },
+      {
+        "hour": 17,
+        "median": 64.2
+      },
+      {
+        "hour": 18,
+        "median": 72.1
+      },
+      {
+        "hour": 19,
+        "median": 82.4
+      },
+      {
+        "hour": 20,
+        "median": 91.2
+      },
+      {
+        "hour": 21,
+        "median": 98.2
+      },
+      {
+        "hour": 22,
+        "median": 105.3
+      },
+      {
+        "hour": 23,
+        "median": 113.4
+      }
+    ],
+    "june": [
+      {
+        "hour": 0,
+        "median": 57.7
+      },
+      {
+        "hour": 1,
+        "median": 62.3
+      },
+      {
+        "hour": 2,
+        "median": 67.5
+      },
+      {
+        "hour": 3,
+        "median": 73.2
+      },
+      {
+        "hour": 4,
+        "median": 81.2
+      },
+      {
+        "hour": 5,
+        "median": 66.1
+      },
+      {
+        "hour": 6,
+        "median": 65.8
+      },
+      {
+        "hour": 7,
+        "median": 57.2
+      },
+      {
+        "hour": 8,
+        "median": 55.7
+      },
+      {
+        "hour": 9,
+        "median": 56.6
+      },
+      {
+        "hour": 10,
+        "median": 57.3
+      },
+      {
+        "hour": 11,
+        "median": 57.0
+      },
+      {
+        "hour": 12,
+        "median": 57.1
+      },
+      {
+        "hour": 13,
+        "median": 57.4
+      },
+      {
+        "hour": 14,
+        "median": 57.1
+      },
+      {
+        "hour": 15,
+        "median": 56.4
+      },
+      {
+        "hour": 16,
+        "median": 55.9
+      },
+      {
+        "hour": 17,
+        "median": 54.3
+      },
+      {
+        "hour": 18,
+        "median": 51.6
+      },
+      {
+        "hour": 19,
+        "median": 47.5
+      },
+      {
+        "hour": 20,
+        "median": 45.9
+      },
+      {
+        "hour": 21,
+        "median": 48.6
+      },
+      {
+        "hour": 22,
+        "median": 51.5
+      },
+      {
+        "hour": 23,
+        "median": 54.1
+      }
+    ]
+  },
+  "labels": {
+    "winter": "8 January 2026",
+    "june": "15 June 2026"
+  },
+  "story": {
+    "winter": "A winter morning in the city.",
+    "june": "The same streets, six months later."
+  }
+}
