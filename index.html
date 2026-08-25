@@ -109,7 +109,7 @@
   </div>
   <div class="title">
     <h1>Lahore</h1>
-    <p id="story">A winter morning — street by street.</p>
+    <p id="story">Street-level AirTrack · a winter morning.</p>
   </div>
 </div>
 <div class="legend" aria-hidden="true">
@@ -169,8 +169,8 @@ function sample(lat, lon){
 }
 function paintRoads(){
   for(const L of roadLines){
-    const bg=sample(L._clat, L._clon);
-    const val = bg==null ? 0 : bg * L._factor;
+    const val = (L._vals[season] || [])[hour];
+    if(val==null) { L.setStyle({ color:"#334" }); continue; }
     L.setStyle({ color: hexAt(val/payload.vmax) });
   }
 }
@@ -195,10 +195,12 @@ function play(){
   else clearInterval(timer);
 }
 
-fetch("payload.json").then(r=>r.json()).then(data=>{
+Promise.all([
+  fetch("payload.json").then(r=>r.json()),
+  fetch("hyperlocal_roads.json").then(r=>r.json())
+]).then(([data, hl])=>{
   payload=data;
-  grids.winter=decode(data.grids.winter);
-  grids.june=decode(data.grids.june);
+  const hlRoads = hl.roads || data.roads;
   map=L.map("map",{
     zoomControl:false, attributionControl:true, preferCanvas:true,
     minZoom:11, maxZoom:16
@@ -211,14 +213,13 @@ fetch("payload.json").then(r=>r.json()).then(data=>{
   overlay=L.imageOverlay(src(), data.bounds, {opacity:1, interactive:false}).addTo(map);
 
   roadLayer=L.layerGroup().addTo(map);
-  for(const r of data.roads){
+  for(const r of hlRoads){
+    if(!r.xy || r.xy.length<2) continue;
     const line=L.polyline(r.xy, {
-      weight:r.w, opacity:0.92, lineCap:"round", lineJoin:"round",
+      weight:r.w || 1.4, opacity:0.95, lineCap:"round", lineJoin:"round",
       color:"#888", interactive:false
     });
-    line._factor=r.f;
-    line._clat=r.xy[Math.floor(r.xy.length/2)][0];
-    line._clon=r.xy[Math.floor(r.xy.length/2)][1];
+    line._vals={ winter:r.winter, june:r.june };
     line.addTo(roadLayer);
     roadLines.push(line);
   }
