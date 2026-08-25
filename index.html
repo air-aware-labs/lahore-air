@@ -88,7 +88,7 @@
   }
   .key i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
   .key .ref{background:#fff;box-shadow:0 0 0 2px #ff610a}
-  .key .sens{background:transparent;border:1.5px solid #fff}
+  .key .sens{background:#d45b5b;border:1.5px solid #fff}
 
   @media (max-width:700px){
     .logos img{height:22px}.logos .aal{height:26px}
@@ -120,8 +120,8 @@
 </div>
 <div class="key">
   <div><i class="ref"></i>Reference monitor</div>
-  <div><i class="sens"></i>Neighbourhood sensor</div>
-  <div style="opacity:.75">µg/m³ fine particles</div>
+  <div><i class="sens"></i>Sensor — coloured by this hour</div>
+  <div style="opacity:.75">Same scale as the streets</div>
 </div>
 <div class="dock">
   <div class="seg">
@@ -139,7 +139,7 @@
 <script>
 const STOPS = [[0,244,233,212],[0.18,232,176,122],[0.38,214,92,78],[0.58,176,52,110],[0.78,92,44,130],[1,32,14,56]];
 let season="winter", hour=9, playing=false, timer=null;
-let overlay, map, payload, grids={}, roadLayer, roadLines=[];
+let overlay, map, payload, grids={}, roadLayer, roadLines=[], monitorMarks=[];
 
 function pad(n){ return String(n).padStart(2,"0"); }
 function src(){ return `fields/${season}/${pad(hour)}.png`; }
@@ -174,6 +174,32 @@ function paintRoads(){
     L.setStyle({ color: hexAt(val/payload.vmax) });
   }
 }
+function reading(m){
+  const arr = (m[season] || []);
+  return arr[hour];
+}
+function paintMonitors(){
+  for(const mark of monitorMarks){
+    const m = mark._meta;
+    const val = reading(m);
+    const isRef = m.kind==="reference";
+    if(val==null){
+      mark.setStyle({ fillColor:"#111", fillOpacity:0.2, color: isRef?"#ff610a":"rgba(255,255,255,.45)" });
+      mark.setTooltipContent(`<div class="mon-tip"><b>${m.name}</b><small>No reading this hour</small></div>`);
+      continue;
+    }
+    mark.setStyle({
+      fillColor: hexAt(val/payload.vmax),
+      fillOpacity: 1,
+      color: isRef ? "#ff610a" : "#fff",
+      weight: isRef ? 2.6 : 1.6
+    });
+    const kind = isRef ? "Reference monitor" : "Neighbourhood sensor";
+    mark.setTooltipContent(
+      `<div class="mon-tip"><b>${m.name}</b><small>${Math.round(val)} µg/m³ · ${kind}${m.network?" · "+m.network:""}</small></div>`
+    );
+  }
+}
 function story(){
   document.getElementById("story").textContent = payload.story[season];
   document.getElementById("clock").textContent = pad(hour)+":00";
@@ -185,6 +211,7 @@ function setFrame(h){
   hour=((h%24)+24)%24;
   if(overlay) overlay.setUrl(src());
   paintRoads();
+  paintMonitors();
   story();
 }
 function play(){
@@ -228,17 +255,17 @@ Promise.all([
   for(const m of data.monitors){
     const isRef=m.kind==="reference";
     const mark=L.circleMarker([m.lat,m.lon],{
-      radius: isRef?7:5,
+      radius: isRef?8:7,
       color: isRef?"#ff610a":"#fff",
-      weight: isRef?2.5:1.4,
-      fillColor: isRef?"#fff":"transparent",
-      fillOpacity: isRef?1:0
+      weight: isRef?2.6:1.6,
+      fillColor:"#888",
+      fillOpacity:1
     }).addTo(map);
-    mark.bindTooltip(
-      `<div class="mon-tip"><b>${m.name}</b><small>${isRef?"Reference monitor":"Neighbourhood sensor"}${m.network?" · "+m.network:""}</small></div>`,
-      {direction:"top", opacity:1, className:"mon-tip"}
-    );
+    mark._meta=m;
+    mark.bindTooltip("", {direction:"top", opacity:1, className:"mon-tip"});
+    monitorMarks.push(mark);
   }
+  paintMonitors();
 
   map.fitBounds(data.bounds,{padding:[20,20]});
   story();
