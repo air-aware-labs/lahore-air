@@ -30,12 +30,23 @@
   }
   .leaflet-control-scale-line{background:var(--glass);border-color:rgba(255,255,255,.35)!important;color:#fff}
   .leaflet-tooltip.mon-tip{
-    background:rgba(12,10,16,.9);border:1px solid var(--line);color:#fff;
+    background:rgba(12,10,16,.92);border:1px solid var(--line);color:#fff;
     border-radius:8px;padding:7px 10px;font:600 12px/1.35 system-ui,sans-serif;
     box-shadow:0 12px 32px rgba(0,0,0,.4)
   }
-  .leaflet-tooltip.mon-tip:before{border-top-color:rgba(12,10,16,.9)}
+  .leaflet-tooltip.mon-tip:before{border-top-color:rgba(12,10,16,.92)}
   .mon-tip small{display:block;font-weight:500;color:rgba(255,255,255,.6);margin-top:2px}
+  .sensor-chip{background:none!important;border:0!important}
+  .sensor-chip .pill{
+    display:flex;align-items:center;gap:5px;
+    background:rgba(10,8,14,.88);border:1px solid rgba(255,255,255,.85);
+    border-radius:999px;padding:2px 7px 2px 4px;
+    color:#fff;font:700 11px/1.1 ui-monospace,Menlo,system-ui,sans-serif;
+    white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.45);
+  }
+  .sensor-chip .pill.ref{border-color:#ff610a}
+  .sensor-chip .swatch{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 0 1px rgba(255,255,255,.5)}
+  .sensor-chip .muted{opacity:.55;font-weight:600}
 
   .brand{
     position:fixed;left:max(20px,env(safe-area-inset-left));top:max(16px,env(safe-area-inset-top));
@@ -178,26 +189,28 @@ function reading(m){
   const arr = (m[season] || []);
   return arr[hour];
 }
+function chipIcon(m, val){
+  const isRef = m.kind==="reference";
+  const n = (val==null) ? "—" : String(Math.round(val));
+  const col = (val==null) ? "#444" : hexAt(val/payload.vmax);
+  return L.divIcon({
+    className: "sensor-chip",
+    html: `<div class="pill${isRef?" ref":""}"><span class="swatch" style="background:${col}"></span><span class="${val==null?"muted":""}">${n}</span></div>`,
+    iconSize: [52, 22],
+    iconAnchor: [10, 11]
+  });
+}
 function paintMonitors(){
   for(const mark of monitorMarks){
     const m = mark._meta;
     const val = reading(m);
     const isRef = m.kind==="reference";
-    if(val==null){
-      mark.setStyle({ fillColor:"#111", fillOpacity:0.2, color: isRef?"#ff610a":"rgba(255,255,255,.45)" });
-      mark.setTooltipContent(`<div class="mon-tip"><b>${m.name}</b><small>No reading this hour</small></div>`);
-      continue;
-    }
-    mark.setStyle({
-      fillColor: hexAt(val/payload.vmax),
-      fillOpacity: 1,
-      color: isRef ? "#ff610a" : "#fff",
-      weight: isRef ? 2.6 : 1.6
-    });
+    mark.setIcon(chipIcon(m, val));
     const kind = isRef ? "Reference monitor" : "Neighbourhood sensor";
-    mark.setTooltipContent(
-      `<div class="mon-tip"><b>${m.name}</b><small>${Math.round(val)} µg/m³ · ${kind}${m.network?" · "+m.network:""}</small></div>`
-    );
+    const line = (val==null)
+      ? "No reading this hour"
+      : `${Math.round(val)} µg/m³ · ${kind}${m.network?" · "+m.network:""}`;
+    mark.setTooltipContent(`<div class="mon-tip"><b>${m.name}</b><small>${line}</small></div>`);
   }
 }
 function story(){
@@ -252,14 +265,13 @@ Promise.all([
   }
   paintRoads();
 
+  const sensorPane = map.createPane("sensors");
+  sensorPane.style.zIndex = 650;
   for(const m of data.monitors){
-    const isRef=m.kind==="reference";
-    const mark=L.circleMarker([m.lat,m.lon],{
-      radius: isRef?8:7,
-      color: isRef?"#ff610a":"#fff",
-      weight: isRef?2.6:1.6,
-      fillColor:"#888",
-      fillOpacity:1
+    const mark=L.marker([m.lat,m.lon],{
+      icon: chipIcon(m, null),
+      pane: "sensors",
+      keyboard: false
     }).addTo(map);
     mark._meta=m;
     mark.bindTooltip("", {direction:"top", opacity:1, className:"mon-tip"});
