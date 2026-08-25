@@ -4,81 +4,127 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Lahore · AirTrack</title>
-<meta name="description" content="Lahore, one winter day. Modelled at 500 metres.">
+<meta name="description" content="Lahore, street by street. Modelled by AirTrack.">
 <meta property="og:title" content="Lahore · AirTrack">
-<meta property="og:description" content="A winter morning in the city, modelled at 500 metres.">
+<meta property="og:description" content="A winter morning in the city, modelled at street level.">
 <meta property="og:image" content="og.png">
 <link rel="icon" href="favicon.svg">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
   :root{
-    --ink:#f4f0ea; --dim:rgba(244,240,234,.72); --accent:#c9a0ff;
-    --glass:rgba(12,10,16,.52); --line:rgba(255,255,255,.12);
+    --ink:#f6f1ea; --dim:rgba(246,241,234,.7); --accent:#ff610a;
+    --glass:rgba(10,8,14,.62); --line:rgba(255,255,255,.14);
   }
   *{box-sizing:border-box}
-  html,body,#map{height:100%;margin:0;background:#120e18}
-  body{font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif;color:var(--ink);overflow:hidden}
+  html,body,#map{height:100%;margin:0;background:#0b0910}
+  body{color:var(--ink);overflow:hidden;font-family:Georgia,"Iowan Old Style",Palatino,serif}
   #map{position:fixed;inset:0}
-  .leaflet-control-attribution{background:transparent!important;color:rgba(255,255,255,.45);font:11px/1.3 system-ui,sans-serif;margin:0 10px 6px 0}
-  .leaflet-control-attribution a{color:rgba(255,255,255,.55)}
-  .leaflet-control-zoom{border:0!important;box-shadow:none!important;margin:18px 18px 0 0!important}
-  .leaflet-control-zoom a{background:var(--glass)!important;color:var(--ink)!important;backdrop-filter:blur(12px);border:1px solid var(--line)!important;width:32px;height:32px;line-height:32px}
-  .leaflet-control-zoom a:first-child{border-radius:10px 10px 0 0}
-  .leaflet-control-zoom a:last-child{border-radius:0 0 10px 10px}
-
-  .title{
-    position:fixed;left:max(22px,env(safe-area-inset-left));top:max(20px,env(safe-area-inset-top));
-    z-index:500;pointer-events:none;text-shadow:0 10px 40px rgba(0,0,0,.65);
+  .leaflet-container{background:#0b0910;font:12px system-ui,sans-serif}
+  .leaflet-control-attribution{background:transparent!important;color:rgba(255,255,255,.4);margin:0 12px 8px 0}
+  .leaflet-control-attribution a{color:rgba(255,255,255,.5)}
+  .leaflet-control-zoom,.leaflet-control-scale{border:0!important;box-shadow:none!important}
+  .leaflet-control-zoom{margin:16px 16px 0 0!important}
+  .leaflet-control-zoom a{
+    background:var(--glass)!important;color:#fff!important;backdrop-filter:blur(12px);
+    border:1px solid var(--line)!important;width:34px;height:34px;line-height:34px
   }
-  .title .brand{font:600 11px/1 system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
-  .title h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:600;letter-spacing:-.03em;margin:0;line-height:1}
-  .title p{font:400 1.05rem/1.35 system-ui,sans-serif;margin:10px 0 0;color:var(--dim);max-width:28ch}
+  .leaflet-control-scale-line{background:var(--glass);border-color:rgba(255,255,255,.35)!important;color:#fff}
+  .leaflet-tooltip.mon-tip{
+    background:rgba(12,10,16,.9);border:1px solid var(--line);color:#fff;
+    border-radius:8px;padding:7px 10px;font:600 12px/1.35 system-ui,sans-serif;
+    box-shadow:0 12px 32px rgba(0,0,0,.4)
+  }
+  .leaflet-tooltip.mon-tip:before{border-top-color:rgba(12,10,16,.9)}
+  .mon-tip small{display:block;font-weight:500;color:rgba(255,255,255,.6);margin-top:2px}
+
+  .brand{
+    position:fixed;left:max(20px,env(safe-area-inset-left));top:max(16px,env(safe-area-inset-top));
+    z-index:500;display:flex;flex-direction:column;gap:14px;pointer-events:none;
+    filter:drop-shadow(0 10px 28px rgba(0,0,0,.55));
+  }
+  .logos{display:flex;align-items:center;gap:14px}
+  .logos img{display:block;height:28px;width:auto}
+  .logos .aal{height:34px}
+  .title h1{font-size:clamp(2.4rem,7vw,3.8rem);font-weight:600;letter-spacing:-.035em;margin:4px 0 0;line-height:.92}
+  .title p{margin:8px 0 0;font:400 1.02rem/1.35 system-ui,sans-serif;color:var(--dim);max-width:26ch}
+
+  .legend{
+    position:fixed;right:max(18px,env(safe-area-inset-right));top:50%;transform:translateY(-40%);
+    z-index:500;display:flex;gap:10px;align-items:stretch;
+    font:600 11px/1.1 system-ui,sans-serif;color:var(--dim);
+    filter:drop-shadow(0 8px 20px rgba(0,0,0,.45));
+  }
+  .bar{
+    width:12px;border-radius:99px;
+    background:linear-gradient(#201038,#5c2c82,#b0346e,#d65a4a,#e8c9a8);
+    border:1px solid var(--line);
+  }
+  .ticks{display:flex;flex-direction:column;justify-content:space-between;padding:2px 0}
+  .ticks span:first-child{color:#fff}
 
   .dock{
-    position:fixed;left:50%;bottom:max(22px,env(safe-area-inset-bottom));
+    position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));
     transform:translateX(-50%);z-index:500;
-    display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;
     background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-    border:1px solid var(--line);border-radius:999px;padding:8px 10px 8px 8px;
-    box-shadow:0 18px 50px rgba(0,0,0,.35);
+    border:1px solid var(--line);border-radius:999px;padding:8px 12px 8px 8px;
+    box-shadow:0 18px 50px rgba(0,0,0,.4);
     font-family:system-ui,-apple-system,sans-serif;
   }
-  .seg{display:flex;background:rgba(255,255,255,.06);border-radius:999px;padding:3px}
+  .seg{display:flex;background:rgba(255,255,255,.07);border-radius:999px;padding:3px}
   .seg button,.play{
     appearance:none;border:0;background:transparent;color:var(--dim);
     font:600 13px system-ui,sans-serif;padding:7px 14px;border-radius:999px;cursor:pointer;
   }
-  .seg button[aria-pressed="true"]{background:#fff;color:#1a1422}
-  .play{
-    width:38px;height:38px;padding:0;border-radius:50%;background:rgba(255,255,255,.1);color:#fff;
-    display:grid;place-items:center;flex:none;
+  .seg button[aria-pressed="true"]{background:#fff;color:#161018}
+  .play{width:38px;height:38px;padding:0;border-radius:50%;background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center}
+  .clock{font:600 15px/1 ui-monospace,Menlo,monospace;min-width:4.8ch;text-align:center}
+  #scrub{width:min(38vw,260px);accent-color:#ff610a;cursor:pointer}
+
+  .key{
+    position:fixed;left:max(20px,env(safe-area-inset-left));bottom:max(22px,env(safe-area-inset-bottom));
+    z-index:500;font:600 11px/1.6 system-ui,sans-serif;color:var(--dim);
+    text-shadow:0 4px 16px #000;
   }
-  .play:hover{background:rgba(255,255,255,.18)}
-  .clock{font:600 15px/1 ui-monospace,Menlo,monospace;min-width:4.6ch;text-align:center}
-  #scrub{width:min(42vw,280px);accent-color:#c9a0ff;cursor:pointer}
-  .credit{
-    position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));
-    z-index:500;font:600 11px/1.2 system-ui,sans-serif;letter-spacing:.04em;
-    color:rgba(244,240,234,.55);text-decoration:none;text-shadow:0 4px 16px #000;
-  }
-  .credit:hover{color:#fff}
-  @media (max-width:640px){
-    .title h1{font-size:2rem}
-    .dock{width:calc(100% - 24px);border-radius:22px;padding:10px}
+  .key i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .key .ref{background:#fff;box-shadow:0 0 0 2px #ff610a}
+  .key .sens{background:transparent;border:1.5px solid #fff}
+
+  @media (max-width:700px){
+    .logos img{height:22px}.logos .aal{height:26px}
+    .title h1{font-size:2.1rem}
+    .legend{top:auto;bottom:96px;transform:none}
+    .dock{width:calc(100% - 20px);border-radius:22px}
     #scrub{width:100%;flex:1 1 100%}
-    .credit{display:none}
+    .key{display:none}
   }
 </style>
 </head>
 <body>
 <div id="map"></div>
-<div class="title">
-  <p class="brand">AirTrack</p>
-  <h1>Lahore</h1>
-  <p id="story">A winter morning in the city.</p>
+<div class="brand">
+  <div class="logos">
+    <img class="aal" src="aal-logo.png" alt="Air Aware Labs">
+    <img src="airtrack-logo.svg" alt="AirTrack">
+  </div>
+  <div class="title">
+    <h1>Lahore</h1>
+    <p id="story">A winter morning — street by street.</p>
+  </div>
+</div>
+<div class="legend" aria-hidden="true">
+  <div class="bar"></div>
+  <div class="ticks">
+    <span>220</span><span>150</span><span>75</span><span>0 µg/m³</span>
+  </div>
+</div>
+<div class="key">
+  <div><i class="ref"></i>Reference monitor</div>
+  <div><i class="sens"></i>Neighbourhood sensor</div>
+  <div style="opacity:.75">µg/m³ fine particles</div>
 </div>
 <div class="dock">
-  <div class="seg" role="tablist" aria-label="Season">
+  <div class="seg">
     <button type="button" id="btn-winter" aria-pressed="true">January</button>
     <button type="button" id="btn-june" aria-pressed="false">June</button>
   </div>
@@ -89,61 +135,118 @@
   <div class="clock" id="clock">09:00</div>
   <input id="scrub" type="range" min="0" max="23" value="9" aria-label="Hour">
 </div>
-<a class="credit" href="https://airawarelabs.com">Air Aware Labs</a>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const P = fetch("payload.json").then(r => r.json());
-let season = "winter", hour = 9, playing = false, timer = null, overlay = null, map, payload;
+const STOPS = [[0,244,233,212],[0.18,232,176,122],[0.38,214,92,78],[0.58,176,52,110],[0.78,92,44,130],[1,32,14,56]];
+let season="winter", hour=9, playing=false, timer=null;
+let overlay, map, payload, grids={}, roadLayer, roadLines=[];
 
 function pad(n){ return String(n).padStart(2,"0"); }
 function src(){ return `fields/${season}/${pad(hour)}.png`; }
+function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
+function lerp(a,b,t){ return a+(b-a)*t; }
+function hexAt(t){
+  t = clamp(t,0,1);
+  let i=0;
+  while(i<STOPS.length-2 && STOPS[i+1][0]<t) i++;
+  const a=STOPS[i], b=STOPS[i+1];
+  const u=(t-a[0])/Math.max(1e-6,b[0]-a[0]);
+  const r=Math.round(lerp(a[1],b[1],u)), g=Math.round(lerp(a[2],b[2],u)), bl=Math.round(lerp(a[3],b[3],u));
+  return `rgb(${r},${g},${bl})`;
+}
+function decode(b64){
+  const bin=atob(b64), u8=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+  return u8;
+}
+function sample(lat, lon){
+  const {nx,ny,lat0,lon0,cell,vmax}=payload;
+  const iy=clamp(Math.round((lat-lat0)/cell),0,ny-1);
+  const ix=clamp(Math.round((lon-lon0)/cell),0,nx-1);
+  const v=grids[season][hour*ny*nx + iy*nx + ix];
+  if(v===255) return null;
+  return v/254*vmax;
+}
+function paintRoads(){
+  for(const L of roadLines){
+    const bg=sample(L._clat, L._clon);
+    const val = bg==null ? 0 : bg * L._factor;
+    L.setStyle({ color: hexAt(val/payload.vmax) });
+  }
+}
 function story(){
   document.getElementById("story").textContent = payload.story[season];
-  document.getElementById("clock").textContent = pad(hour) + ":00";
+  document.getElementById("clock").textContent = pad(hour)+":00";
   document.getElementById("scrub").value = hour;
-  document.getElementById("btn-winter").setAttribute("aria-pressed", season === "winter");
-  document.getElementById("btn-june").setAttribute("aria-pressed", season === "june");
+  document.getElementById("btn-winter").setAttribute("aria-pressed", season==="winter");
+  document.getElementById("btn-june").setAttribute("aria-pressed", season==="june");
 }
 function setFrame(h){
-  hour = ((h % 24) + 24) % 24;
-  if (overlay) overlay.setUrl(src());
+  hour=((h%24)+24)%24;
+  if(overlay) overlay.setUrl(src());
+  paintRoads();
   story();
 }
 function play(){
-  playing = !playing;
-  document.getElementById("icon-play").hidden = playing;
-  document.getElementById("icon-pause").hidden = !playing;
-  document.getElementById("play").setAttribute("aria-label", playing ? "Pause" : "Play the day");
-  if (playing) {
-    timer = setInterval(() => setFrame(hour + 1), 420);
-  } else {
-    clearInterval(timer);
-  }
+  playing=!playing;
+  document.getElementById("icon-play").hidden=playing;
+  document.getElementById("icon-pause").hidden=!playing;
+  if(playing) timer=setInterval(()=>setFrame(hour+1), 480);
+  else clearInterval(timer);
 }
 
-P.then(data => {
-  payload = data;
-  map = L.map("map", {
-    zoomControl: false,
-    attributionControl: true,
-    minZoom: 11,
-    maxZoom: 15,
+fetch("payload.json").then(r=>r.json()).then(data=>{
+  payload=data;
+  grids.winter=decode(data.grids.winter);
+  grids.june=decode(data.grids.june);
+  map=L.map("map",{
+    zoomControl:false, attributionControl:true, preferCanvas:true,
+    minZoom:11, maxZoom:16
   }).setView(data.center, 12);
-  L.control.zoom({ position: "topright" }).addTo(map);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-    attribution: "&copy; OpenStreetMap &copy; CARTO",
-    subdomains: "abcd",
-    maxZoom: 19,
+  L.control.zoom({position:"topright"}).addTo(map);
+  L.control.scale({imperial:false, position:"bottomright"}).addTo(map);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{
+    attribution:"&copy; OpenStreetMap &copy; CARTO", subdomains:"abcd", maxZoom:19
   }).addTo(map);
-  overlay = L.imageOverlay(src(), data.bounds, { opacity: 1, interactive: false }).addTo(map);
-  map.fitBounds(data.bounds, { padding: [24, 24] });
+  overlay=L.imageOverlay(src(), data.bounds, {opacity:1, interactive:false}).addTo(map);
+
+  roadLayer=L.layerGroup().addTo(map);
+  for(const r of data.roads){
+    const line=L.polyline(r.xy, {
+      weight:r.w, opacity:0.92, lineCap:"round", lineJoin:"round",
+      color:"#888", interactive:false
+    });
+    line._factor=r.f;
+    line._clat=r.xy[Math.floor(r.xy.length/2)][0];
+    line._clon=r.xy[Math.floor(r.xy.length/2)][1];
+    line.addTo(roadLayer);
+    roadLines.push(line);
+  }
+  paintRoads();
+
+  for(const m of data.monitors){
+    const isRef=m.kind==="reference";
+    const mark=L.circleMarker([m.lat,m.lon],{
+      radius: isRef?7:5,
+      color: isRef?"#ff610a":"#fff",
+      weight: isRef?2.5:1.4,
+      fillColor: isRef?"#fff":"transparent",
+      fillOpacity: isRef?1:0
+    }).addTo(map);
+    mark.bindTooltip(
+      `<div class="mon-tip"><b>${m.name}</b><small>${isRef?"Reference monitor":"Neighbourhood sensor"}${m.network?" · "+m.network:""}</small></div>`,
+      {direction:"top", opacity:1, className:"mon-tip"}
+    );
+  }
+
+  map.fitBounds(data.bounds,{padding:[20,20]});
   story();
 });
 
-document.getElementById("btn-winter").onclick = () => { season = "winter"; setFrame(hour); };
-document.getElementById("btn-june").onclick = () => { season = "june"; setFrame(hour); };
-document.getElementById("play").onclick = play;
-document.getElementById("scrub").oninput = e => setFrame(+e.target.value);
+document.getElementById("btn-winter").onclick=()=>{season="winter"; setFrame(hour);};
+document.getElementById("btn-june").onclick=()=>{season="june"; setFrame(hour);};
+document.getElementById("play").onclick=play;
+document.getElementById("scrub").oninput=e=>setFrame(+e.target.value);
 </script>
 </body>
 </html>
