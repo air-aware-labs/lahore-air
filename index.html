@@ -19,7 +19,7 @@
   html,body,#map{height:100%;margin:0;background:#0b0910}
   body{color:var(--ink);overflow:hidden;font-family:Georgia,"Iowan Old Style",Palatino,serif}
   #map{position:fixed;inset:0}
-  .leaflet-container{background:#0b0910;font:12px system-ui,sans-serif}
+  .leaflet-container{background:#0b0910;font:12px system-ui,sans-serif;cursor:crosshair}
   .leaflet-control-attribution{background:transparent!important;color:rgba(255,255,255,.4);margin:0 12px 8px 0}
   .leaflet-control-attribution a{color:rgba(255,255,255,.5)}
   .leaflet-control-zoom,.leaflet-control-scale{border:0!important;box-shadow:none!important}
@@ -101,6 +101,16 @@
   .key .ref{background:#fff;box-shadow:0 0 0 2px #ff610a}
   .key .sens{background:#d45b5b;border:1.5px solid #fff}
 
+  #probe{
+    position:fixed;left:0;top:0;z-index:700;pointer-events:none;display:none;
+    background:rgba(10,8,14,.92);border:1px solid var(--line);border-radius:12px;
+    padding:8px 12px 7px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 14px 36px rgba(0,0,0,.5);white-space:nowrap;
+  }
+  #probe .n{font:700 20px/1 ui-monospace,Menlo,monospace;letter-spacing:-.03em}
+  #probe .u{font:600 11px system-ui,sans-serif;color:var(--dim);margin-left:5px}
+  #probe small{display:block;margin-top:4px;font:500 11px/1.25 system-ui,sans-serif;color:var(--dim);max-width:22ch;overflow:hidden;text-overflow:ellipsis}
+
   @media (max-width:700px){
     .logos img{height:22px}.logos .aal{height:26px}
     .title h1{font-size:2.1rem}
@@ -113,6 +123,7 @@
 </head>
 <body>
 <div id="map"></div>
+<div id="probe"></div>
 <div class="brand">
   <div class="logos">
     <img class="aal" src="aal-logo.png" alt="Air Aware Labs">
@@ -151,6 +162,9 @@
 const STOPS = [[0,244,233,212],[0.18,232,176,122],[0.38,214,92,78],[0.58,176,52,110],[0.78,92,44,130],[1,32,14,56]];
 let season="winter", hour=9, playing=false, timer=null;
 let overlay, map, payload, grids={}, roadLayer, roadLines=[], monitorMarks=[];
+let buckets=new Map(), lastLL=null, lastXY=null;
+const HIT=0.00042;
+const probe=()=>document.getElementById("probe");
 
 function pad(n){ return String(n).padStart(2,"0"); }
 function src(){ return `fields/${season}/${pad(hour)}.png`; }
@@ -172,11 +186,82 @@ function decode(b64){
 }
 function sample(lat, lon){
   const {nx,ny,lat0,lon0,cell,vmax}=payload;
-  const iy=clamp(Math.round((lat-lat0)/cell),0,ny-1);
-  const ix=clamp(Math.round((lon-lon0)/cell),0,nx-1);
-  const v=grids[season][hour*ny*nx + iy*nx + ix];
+  const fy=(lat-lat0)/cell, fx=(lon-lon0)/cell;
+  if(fy<-0.5 || fy>ny-0.5 || fx<-0.5 || fx>nx-0.5) return null;
+  const iy=clamp(Math.round(fy),0,ny-1);
+  const ix=clamp(Math.round(fx),0,nx-1);
+  const grid=grids[season];
+  if(!grid) return null;
+  const v=grid[hour*ny*nx + iy*nx + ix];
   if(v===255) return null;
   return v/254*vmax;
+}
+function bkey(lat, lon){
+  return Math.floor(lat/HIT)+":"+Math.floor(lon/HIT);
+}
+function indexRoad(line){
+  const xy=line.getLatLngs();
+  const step=xy.length>24 ? 2 : 1;
+  for(let i=0;i<xy.length;i+=step){
+    const p=xy[i];
+    const k=bkey(p.lat, p.lng);
+    let bucket=buckets.get(k);
+    if(!bucket){ bucket=[]; buckets.set(k, bucket); }
+    bucket.push({lat:p.lat, lon:p.lng, line});
+  }
+  if(step>1){
+    const p=xy[xy.length-1];
+    const k=bkey(p.lat, p.lng);
+    let bucket=buckets.get(k);
+    if(!bucket){ bucket=[]; buckets.set(k, bucket); }
+    bucket.push({lat:p.lat, lon:p.lng, line});
+  }
+}
+function nearestRoad(lat, lon){
+  const i0=Math.floor(lat/HIT), j0=Math.floor(lon/HIT);
+  let best=null, bestD=HIT*HIT;
+  for(let di=-1; di<=1; di++){
+    for(let dj=-1; dj<=1; dj++){
+      const bucket=buckets.get((i0+di)+":"+(j0+dj));
+      if(!bucket) continue;
+      for(const rec of bucket){
+        const dlat=rec.lat-lat, dlon=rec.lon-lon;
+        const d=dlat*dlat+dlon*dlon;
+        if(d<bestD){ bestD=d; best=rec; }
+      }
+    }
+  }
+  return best;
+}
+function prettyCls(c){
+  if(!c) return "Street";
+  return c.replace(/_/g," ").replace(/\b\w/g, s=>s.toUpperCase());
+}
+function updateProbe(ll, xy){
+  if(ll) lastLL=ll;
+  if(xy) lastXY=xy;
+  const el=probe();
+  if(!lastLL || !payload){ el.style.display="none"; return; }
+  const lat=lastLL.lat, lon=lastLL.lng;
+  const hit=nearestRoad(lat, lon);
+  let val=null, label="";
+  if(hit){
+    val=(hit.line._vals[season]||[])[hour];
+    label=hit.line._name || prettyCls(hit.line._cls);
+  } else {
+    val=sample(lat, lon);
+    label="500 m";
+  }
+  if(val==null){ el.style.display="none"; return; }
+  el.hidden=false;
+  el.style.display="block";
+  el.innerHTML=`<span class="n">${Math.round(val)}</span><span class="u">µg/m³</span><small>${label}</small>`;
+  if(lastXY){
+    let x=lastXY.x+16, y=lastXY.y+18;
+    if(x>window.innerWidth-150) x=lastXY.x-128;
+    if(y>window.innerHeight-80) y=lastXY.y-62;
+    el.style.transform=`translate(${x}px,${y}px)`;
+  }
 }
 function paintRoads(){
   for(const L of roadLines){
@@ -226,6 +311,7 @@ function setFrame(h){
   paintRoads();
   paintMonitors();
   story();
+  if(lastLL) updateProbe();
 }
 function play(){
   playing=!playing;
@@ -240,6 +326,8 @@ Promise.all([
   fetch("hyperlocal_roads.json").then(r=>r.json())
 ]).then(([data, hl])=>{
   payload=data;
+  grids.winter=decode(data.grids.winter);
+  grids.june=decode(data.grids.june);
   const hlRoads = hl.roads || data.roads;
   map=L.map("map",{
     zoomControl:false, attributionControl:true, preferCanvas:true,
@@ -260,8 +348,11 @@ Promise.all([
       color:"#888", interactive:false
     });
     line._vals={ winter:r.winter, june:r.june };
+    line._name=(r.n||"").trim();
+    line._cls=r.c||"";
     line.addTo(roadLayer);
     roadLines.push(line);
+    indexRoad(line);
   }
   paintRoads();
 
@@ -281,6 +372,17 @@ Promise.all([
 
   map.fitBounds(data.bounds,{padding:[20,20]});
   story();
+
+  map.on("mousemove", e=>{
+    updateProbe(e.latlng, {x:e.originalEvent.clientX, y:e.originalEvent.clientY});
+  });
+  map.on("click", e=>{
+    updateProbe(e.latlng, {x:e.originalEvent.clientX, y:e.originalEvent.clientY});
+  });
+  map.getContainer().addEventListener("mouseleave", ()=>{
+    lastLL=null;
+    probe().style.display="none";
+  });
 });
 
 document.getElementById("btn-winter").onclick=()=>{season="winter"; setFrame(hour);};
