@@ -1,0 +1,16 @@
+{
+  "built_utc": "2026-08-27T09:42:41.310726+00:00",
+  "engine": "global_row_v1.3",
+  "prior": "NASA GEOS-CF v2",
+  "analysis_start_utc": "2026-08-24T09:30:00+00:00",
+  "analysis_end_utc": "2026-08-26T08:30:00+00:00",
+  "forecast_issue_utc": "2026-08-26T09:30:00+00:00",
+  "forecast_end_utc": "2026-08-31T08:30:00+00:00",
+  "n_hours": 168,
+  "n_analysis": 48,
+  "n_forecast": 120,
+  "regional_scale": 1.0,
+  "vmax": 160.0,
+  "pngs": 168,
+  "published_utc": "2026-08-27T09:42:54.492163+00:00"
+}

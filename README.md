@@ -1,9 +1,19 @@
 # Lahore · AirTrack
 
-A map of one winter day and one summer day in Lahore. 500 m city field, street
-layer on the roads, neighbourhood sensors as dots.
+Street-level AirTrack for Lahore. Default view is a rolling **GEOS-CF analysis
++ forecast** window run through Global/RoW v1.3. January and June 2026 remain
+as typical-day archives.
 
 **Live:** https://air-aware-labs.github.io/lahore-air/
 
-AirTrack Global/RoW v1.3 with the production near-road street layer. Showcase,
-not a scorecard.
+The field is the model. Sensors are not assimilated and do not drive the
+forecast. An optional city-wide `--regional-scale` can be applied at build
+time if a regional bias has been diagnosed separately; it is off by default.
+
+Rebuild from `../lahore-briefing`:
+
+```
+./run_live.sh
+```
+
+Showcase, not a scorecard.

@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Lahore · AirTrack</title>
-<meta name="description" content="Lahore, street by street. Modelled by AirTrack.">
+<meta name="description" content="Lahore, street by street. Modelled by AirTrack, updated from GEOS-CF analysis and forecast.">
 <meta property="og:title" content="Lahore · AirTrack">
-<meta property="og:description" content="A winter morning in the city, modelled at street level.">
+<meta property="og:description" content="Street-level AirTrack for Lahore — recent hours and the days ahead.">
 <meta property="og:image" content="og.png">
 <link rel="icon" href="favicon.svg">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -39,7 +39,10 @@
   .logos img{display:block;height:28px;width:auto}
   .logos .aal{height:34px}
   .title h1{font-size:clamp(2.4rem,7vw,3.8rem);font-weight:600;letter-spacing:-.035em;margin:4px 0 0;line-height:.92}
-  .title p{margin:8px 0 0;font:400 1.02rem/1.35 system-ui,sans-serif;color:var(--dim);max-width:26ch}
+  .title p{margin:8px 0 0;font:400 1.02rem/1.35 system-ui,sans-serif;color:var(--dim);max-width:32ch}
+  .title small{
+    display:block;margin-top:6px;font:500 11px/1.3 system-ui,sans-serif;color:rgba(246,241,234,.45)
+  }
 
   .legend{
     position:fixed;right:max(18px,env(safe-area-inset-right));top:50%;transform:translateY(-40%);
@@ -53,12 +56,11 @@
     border:1px solid var(--line);
   }
   .ticks{display:flex;flex-direction:column;justify-content:space-between;padding:2px 0}
-  .ticks span:first-child{color:#fff}
 
   .dock{
     position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));
     transform:translateX(-50%);z-index:500;
-    display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;
     background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
     border:1px solid var(--line);border-radius:999px;padding:8px 12px 8px 8px;
     box-shadow:0 18px 50px rgba(0,0,0,.4);
@@ -67,12 +69,17 @@
   .seg{display:flex;background:rgba(255,255,255,.07);border-radius:999px;padding:3px}
   .seg button,.play{
     appearance:none;border:0;background:transparent;color:var(--dim);
-    font:600 13px system-ui,sans-serif;padding:7px 14px;border-radius:999px;cursor:pointer;
+    font:600 13px system-ui,sans-serif;padding:7px 12px;border-radius:999px;cursor:pointer;
   }
   .seg button[aria-pressed="true"]{background:#fff;color:#161018}
   .play{width:38px;height:38px;padding:0;border-radius:50%;background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center}
-  .clock{font:600 15px/1 ui-monospace,Menlo,monospace;min-width:4.8ch;text-align:center}
-  #scrub{width:min(38vw,260px);accent-color:#ff610a;cursor:pointer}
+  .clock{font:600 14px/1 ui-monospace,Menlo,monospace;min-width:11ch;text-align:center}
+  .pill{
+    font:650 10px/1 system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:6px 8px
+  }
+  .pill[data-src="forecast"]{color:#ffd2b3;border-color:rgba(255,97,10,.45)}
+  #scrub{width:min(38vw,280px);accent-color:#ff610a;cursor:pointer}
 
   .chart{
     position:fixed;left:max(20px,env(safe-area-inset-left));bottom:max(22px,env(safe-area-inset-bottom));
@@ -89,6 +96,7 @@
   .chart-key i{display:inline-block;width:12px;height:2px;margin-right:5px;vertical-align:middle;border-radius:2px}
   .chart-key .k-city i{background:#fff}
   .chart-key .k-site i{background:var(--accent)}
+  .chart-key .k-fcst i{background:#fff;border-top:1.5px dashed #fff;height:0;width:12px}
 
   #probe{
     position:fixed;left:0;top:0;z-index:700;pointer-events:none;display:none;
@@ -124,49 +132,57 @@
   <div class="title">
     <h1>Lahore</h1>
     <p id="story">Street-level AirTrack · a winter morning.</p>
+    <small id="built"></small>
   </div>
 </div>
 <div class="legend" aria-hidden="true">
   <div class="bar"></div>
-  <div class="ticks">
+  <div class="ticks" id="ticks">
     <span>220</span><span>150</span><span>75</span><span>0 µg/m³</span>
   </div>
 </div>
 <aside class="chart" id="chart-card">
   <div class="chart-head">
-    <b>Measured that day</b>
-    <span>Neighbourhood sensors, not the model</span>
+    <b id="chart-title">Measured that day</b>
+    <span id="chart-sub">Neighbourhood sensors, not the model</span>
   </div>
-  <svg id="chart" viewBox="0 0 232 92" role="img" aria-label="Sensor readings over 24 hours"></svg>
-  <div class="chart-key">
+  <svg id="chart" viewBox="0 0 232 92" role="img" aria-label="City air quality over time"></svg>
+  <div class="chart-key" id="chart-key">
     <span class="k-city"><i></i>City median</span>
     <span class="k-site"><i></i>Forman College</span>
   </div>
 </aside>
 <div class="dock">
   <div class="seg">
-    <button type="button" id="btn-winter" aria-pressed="true">January</button>
+    <button type="button" id="btn-live" aria-pressed="true">Live</button>
+    <button type="button" id="btn-winter" aria-pressed="false">January</button>
     <button type="button" id="btn-june" aria-pressed="false">June</button>
   </div>
-  <button type="button" class="play" id="play" aria-label="Play the day">
+  <button type="button" class="play" id="play" aria-label="Play the window">
     <svg id="icon-play" width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.5v11l9-5.5z"/></svg>
     <svg id="icon-pause" width="14" height="14" viewBox="0 0 14 14" fill="currentColor" hidden><path d="M3 2h3v10H3zm5 0h3v10H8z"/></svg>
   </button>
   <div class="clock" id="clock">09:00</div>
-  <input id="scrub" type="range" min="0" max="23" value="9" aria-label="Hour">
+  <span class="pill" id="src-pill">Analysis</span>
+  <input id="scrub" type="range" min="0" max="23" value="9" aria-label="Time">
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const STOPS = [[0,244,233,212],[0.18,232,176,122],[0.38,214,92,78],[0.58,176,52,110],[0.78,92,44,130],[1,32,14,56]];
-const YMAX = 300;
-let season="winter", hour=9, playing=false, timer=null;
-let overlay, map, payload, grids={}, roadLayer, roadLines=[];
+let mode="live", hour=0, playing=false, timer=null;
+let overlay, map, payload, live=null, grids={}, roadLayer, roadLines=[];
 let buckets=new Map(), lastLL=null, lastXY=null, measured=null;
 const HIT=0.00042;
 const probe=()=>document.getElementById("probe");
 
-function pad(n){ return String(n).padStart(2,"0"); }
-function src(){ return `fields/${season}/${pad(hour)}.png`; }
+function pad(n, w=2){ return String(n).padStart(w,"0"); }
+function isLive(){ return mode==="live" && live && live.hours && live.hours.length; }
+function nHours(){ return isLive() ? live.hours.length : 24; }
+function vmax(){ return isLive() ? live.vmax : (payload && payload.vmax) || 220; }
+function src(){
+  if(isLive()) return `fields/live/${pad(hour,3)}.png`;
+  return `fields/${mode}/${pad(hour)}.png`;
+}
 function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
 function lerp(a,b,t){ return a+(b-a)*t; }
 function hexAt(t){
@@ -183,17 +199,25 @@ function decode(b64){
   for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
   return u8;
 }
+function gridMeta(){
+  return isLive() ? live : payload;
+}
+function currentGrid(){
+  if(isLive()) return grids.live;
+  return grids[mode];
+}
 function sample(lat, lon){
-  const {nx,ny,lat0,lon0,cell,vmax}=payload;
+  const P=gridMeta();
+  const grid=currentGrid();
+  if(!P || !grid) return null;
+  const {nx,ny,lat0,lon0,cell}=P;
   const fy=(lat-lat0)/cell, fx=(lon-lon0)/cell;
   if(fy<-0.5 || fy>ny-0.5 || fx<-0.5 || fx>nx-0.5) return null;
   const iy=clamp(Math.round(fy),0,ny-1);
   const ix=clamp(Math.round(fx),0,nx-1);
-  const grid=grids[season];
-  if(!grid) return null;
   const v=grid[hour*ny*nx + iy*nx + ix];
   if(v===255) return null;
-  return v/254*vmax;
+  return v/254*P.vmax;
 }
 function bkey(lat, lon){
   return Math.floor(lat/HIT)+":"+Math.floor(lon/HIT);
@@ -236,6 +260,16 @@ function prettyCls(c){
   if(!c) return "Street";
   return c.replace(/_/g," ").replace(/\b\w/g, s=>s.toUpperCase());
 }
+function roadValue(line, lat, lon){
+  if(isLive()){
+    const base=sample(lat, lon);
+    if(base==null) return null;
+    return base * (line._f || 1);
+  }
+  const vals=line._vals[mode]||[];
+  const v=vals[hour];
+  return v==null ? null : v;
+}
 function updateProbe(ll, xy){
   if(ll) lastLL=ll;
   if(xy) lastXY=xy;
@@ -245,7 +279,7 @@ function updateProbe(ll, xy){
   const hit=nearestRoad(lat, lon);
   let val=null, label="";
   if(hit){
-    val=(hit.line._vals[season]||[])[hour];
+    val=roadValue(hit.line, hit.lat, hit.lon);
     label=hit.line._name || prettyCls(hit.line._cls);
   } else {
     val=sample(lat, lon);
@@ -263,10 +297,17 @@ function updateProbe(ll, xy){
   }
 }
 function paintRoads(){
+  const top=vmax();
   for(const L of roadLines){
-    const val = (L._vals[season] || [])[hour];
+    let val=null;
+    if(isLive()){
+      if(L._clat!=null) val=sample(L._clat, L._clon);
+      if(val!=null) val *= (L._f || 1);
+    } else {
+      val = (L._vals[mode] || [])[hour];
+    }
     if(val==null) { L.setStyle({ color:"#334" }); continue; }
-    L.setStyle({ color: hexAt(val/payload.vmax) });
+    L.setStyle({ color: hexAt(val/top) });
   }
 }
 function hourlyMedian(monitors, key){
@@ -291,100 +332,177 @@ function seriesOf(monitor, key){
 }
 function pathFrom(series, xOf, yOf){
   let d="", pen=false;
-  for(let h=0;h<24;h++){
+  for(let h=0;h<series.length;h++){
     const v=series[h];
-    if(v==null){ pen=false; continue; }
+    if(v==null || !Number.isFinite(v)){ pen=false; continue; }
     d += (pen?"L":"M") + xOf(h).toFixed(1) + " " + yOf(v).toFixed(1) + " ";
     pen=true;
   }
   return d;
 }
+function setLegend(top){
+  const ticks=[top, top*2/3, top/3, 0];
+  document.getElementById("ticks").innerHTML = ticks.map((v,i)=>{
+    const label = i===3 ? "0 µg/m³" : String(Math.round(v));
+    return `<span${i===0?' style="color:#fff"':""}>${label}</span>`;
+  }).join("");
+}
+function liveSeries(){
+  return (live.hours||[]).map(h => h.median);
+}
 function drawChart(){
   const svg=document.getElementById("chart");
-  if(!svg || !measured) return;
+  if(!svg) return;
   const W=232, H=92, L=26, R=8, T=8, B=18;
   const iw=W-L-R, ih=H-T-B;
-  const xOf=h=> L + h/23*iw;
-  const yOf=v=> T + (1-clamp(v,0,YMAX)/YMAX)*ih;
-  const city=measured[season].city;
-  const site=measured[season].site;
-  const cityNow=city[hour], siteNow=site[hour];
-  const ticks=[0,150,300].map(v=>{
+  const n=nHours();
+  const xOf=h=> L + (n<=1 ? 0 : h/(n-1))*iw;
+  const yMax = isLive() ? Math.max(vmax(), 40) : 300;
+  const yOf=v=> T + (1-clamp(v,0,yMax)/yMax)*ih;
+  const yTicks = isLive() ? [0, Math.round(yMax/2), Math.round(yMax)] : [0,150,300];
+  const ticks=yTicks.map(v=>{
     const y=yOf(v);
     return `<line x1="${L}" y1="${y}" x2="${W-R}" y2="${y}" stroke="rgba(255,255,255,.08)"/>
       <text x="${L-4}" y="${y+3}" text-anchor="end" fill="rgba(246,241,234,.45)" font-size="8" font-family="system-ui">${v}</text>`;
   }).join("");
-  const hours=[0,9,18].map(h=>{
-    return `<text x="${xOf(h)}" y="${H-4}" text-anchor="middle" fill="rgba(246,241,234,.45)" font-size="8" font-family="ui-monospace,Menlo,system-ui">${pad(h)}</text>`;
-  }).join("");
+  let hours="";
+  if(isLive()){
+    const marks=[0, Math.floor((n-1)/2), n-1];
+    hours=marks.map(h=>{
+      const label=(live.hours[h]||{}).label || "";
+      const short=label.replace(/^\d+\s/,"").replace(/:\d+$/, (live.hours[h]||{}).weekday || label);
+      const shown=(live.hours[h]||{}).weekday || pad(h);
+      return `<text x="${xOf(h)}" y="${H-4}" text-anchor="middle" fill="rgba(246,241,234,.45)" font-size="8" font-family="ui-monospace,Menlo,system-ui">${shown}</text>`;
+    }).join("");
+  } else {
+    hours=[0,9,18].map(h=>{
+      return `<text x="${xOf(h)}" y="${H-4}" text-anchor="middle" fill="rgba(246,241,234,.45)" font-size="8" font-family="ui-monospace,Menlo,system-ui">${pad(h)}</text>`;
+    }).join("");
+  }
   const xh=xOf(hour);
-  let mark="";
-  if(cityNow!=null){
-    mark += `<circle cx="${xh}" cy="${yOf(cityNow)}" r="3.2" fill="#fff"/>`;
+  let paths="", mark="", label="";
+  if(isLive()){
+    const series=liveSeries();
+    const split=(live.hours||[]).findIndex(h=>h.source==="forecast");
+    const ana = series.map((v,i)=> (split<0 || i<split) ? v : null);
+    const fcst = series.map((v,i)=> (split>=0 && i>=split) ? v : null);
+    paths += `<path d="${pathFrom(ana,xOf,yOf)}" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>`;
+    paths += `<path d="${pathFrom(fcst,xOf,yOf)}" fill="none" stroke="#fff" stroke-width="1.6" stroke-dasharray="4 3" stroke-linejoin="round" stroke-linecap="round"/>`;
+    if(split>0){
+      paths += `<line x1="${xOf(split)}" y1="${T}" x2="${xOf(split)}" y2="${H-B}" stroke="rgba(255,255,255,.18)"/>`;
+    }
+    const now=series[hour];
+    if(now!=null){
+      mark += `<circle cx="${xh}" cy="${yOf(now)}" r="3.2" fill="#fff"/>`;
+      label = `${Math.round(now)}`;
+    }
+  } else if(measured){
+    const city=measured[mode].city;
+    const site=measured[mode].site;
+    paths += `<path d="${pathFrom(city,xOf,yOf)}" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>`;
+    paths += `<path d="${pathFrom(site,xOf,yOf)}" fill="none" stroke="#ff610a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    if(city[hour]!=null) mark += `<circle cx="${xh}" cy="${yOf(city[hour])}" r="3.2" fill="#fff"/>`;
+    if(site[hour]!=null) mark += `<circle cx="${xh}" cy="${yOf(site[hour])}" r="2.6" fill="#ff610a"/>`;
+    if(city[hour]!=null) label = `${Math.round(city[hour])}`;
   }
-  if(siteNow!=null){
-    mark += `<circle cx="${xh}" cy="${yOf(siteNow)}" r="2.6" fill="#ff610a"/>`;
-  }
-  const label = cityNow==null ? "" : `${Math.round(cityNow)}`;
   svg.innerHTML = `
     ${ticks}
     <line x1="${xh}" y1="${T}" x2="${xh}" y2="${H-B}" stroke="rgba(255,97,10,.85)" stroke-width="1"/>
-    <path d="${pathFrom(city,xOf,yOf)}" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
-    <path d="${pathFrom(site,xOf,yOf)}" fill="none" stroke="#ff610a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${paths}
     ${mark}
     ${hours}
     ${label ? `<text x="${Math.min(xh+6, W-R)}" y="${T+9}" fill="#fff" font-size="9" font-family="ui-monospace,Menlo,system-ui">${label}</text>` : ""}
   `;
 }
+function setChartCopy(){
+  const title=document.getElementById("chart-title");
+  const sub=document.getElementById("chart-sub");
+  const key=document.getElementById("chart-key");
+  if(isLive()){
+    title.textContent="AirTrack city field";
+    sub.textContent="Modelled PM2.5 · analysis, then forecast";
+    key.innerHTML=`<span class="k-city"><i></i>Analysis</span><span class="k-fcst"><i></i>Forecast</span>`;
+  } else {
+    title.textContent="Measured that day";
+    sub.textContent="Neighbourhood sensors, not the model";
+    key.innerHTML=`<span class="k-city"><i></i>City median</span><span class="k-site"><i></i>Forman College</span>`;
+  }
+}
+function formatBuilt(iso){
+  if(!iso) return "";
+  const d=new Date(iso);
+  if(Number.isNaN(d.getTime())) return "";
+  const mon=d.toLocaleString("en-GB",{month:"short", timeZone:"UTC"});
+  return `Updated ${d.getUTCDate()} ${mon} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
+}
 function story(){
-  document.getElementById("story").textContent = payload.story[season];
-  document.getElementById("clock").textContent = pad(hour)+":00";
+  const pill=document.getElementById("src-pill");
+  const built=document.getElementById("built");
+  document.getElementById("btn-live").setAttribute("aria-pressed", mode==="live");
+  document.getElementById("btn-winter").setAttribute("aria-pressed", mode==="winter");
+  document.getElementById("btn-june").setAttribute("aria-pressed", mode==="june");
+  document.getElementById("scrub").max = nHours()-1;
   document.getElementById("scrub").value = hour;
-  document.getElementById("btn-winter").setAttribute("aria-pressed", season==="winter");
-  document.getElementById("btn-june").setAttribute("aria-pressed", season==="june");
+  if(isLive()){
+    const h=live.hours[hour];
+    const future=Date.parse(h.utc) > Date.now();
+    const kind=future ? "Forecast" : "Modelled";
+    document.getElementById("story").textContent = `${kind} · ${h.weekday} ${h.label.replace(/^\d+\s[A-Za-z]+\s/,"")} PKT`;
+    document.getElementById("clock").textContent = h.label;
+    pill.hidden=false;
+    pill.dataset.src=future ? "forecast" : h.source;
+    pill.textContent = future ? "Forecast" : (h.source==="analysis" ? "Analysis" : "Modelled");
+    const extra = live.forecast_issue_utc
+      ? ` · GEOS-CF ${new Date(live.forecast_issue_utc).toISOString().slice(0,16).replace("T"," ")}Z`
+      : "";
+    built.textContent = formatBuilt(live.built_utc) + extra;
+  } else {
+    document.getElementById("story").textContent = payload.story[mode];
+    document.getElementById("clock").textContent = pad(hour)+":00";
+    pill.hidden=true;
+    built.textContent = payload.labels ? payload.labels[mode] : "";
+  }
 }
 function setFrame(h){
-  hour=((h%24)+24)%24;
+  const n=nHours();
+  hour=((h%n)+n)%n;
   if(overlay) overlay.setUrl(src());
   paintRoads();
   drawChart();
   story();
   if(lastLL) updateProbe();
 }
+function setMode(next){
+  if(next==="live" && !live) return;
+  mode=next;
+  if(isLive()){
+    const now=Date.now();
+    let best=0, bestD=Infinity;
+    live.hours.forEach((h,i)=>{
+      const t=Date.parse(h.utc);
+      const d=Math.abs(t-now);
+      if(d<bestD){ bestD=d; best=i; }
+    });
+    hour=best;
+  } else if(hour>23) hour=9;
+  setLegend(vmax());
+  setChartCopy();
+  if(overlay) overlay.setUrl(src());
+  setFrame(hour);
+}
 function play(){
   playing=!playing;
   document.getElementById("icon-play").hidden=playing;
   document.getElementById("icon-pause").hidden=!playing;
-  if(playing) timer=setInterval(()=>setFrame(hour+1), 480);
+  if(playing) timer=setInterval(()=>setFrame(hour+1), isLive()?160:480);
   else clearInterval(timer);
 }
 
-Promise.all([
-  fetch("payload.json").then(r=>r.json()),
-  fetch("hyperlocal_roads.json").then(r=>r.json())
-]).then(([data, hl])=>{
-  payload=data;
-  grids.winter=decode(data.grids.winter);
-  grids.june=decode(data.grids.june);
-  const site=(data.monitors||[]).find(m => /Forman Christian/i.test(m.name||""));
-  measured={
-    winter:{ city:hourlyMedian(data.monitors||[], "winter"), site:seriesOf(site, "winter") },
-    june:{ city:hourlyMedian(data.monitors||[], "june"), site:seriesOf(site, "june") }
-  };
-  const hlRoads = hl.roads || data.roads;
-  map=L.map("map",{
-    zoomControl:false, attributionControl:true, preferCanvas:true,
-    minZoom:11, maxZoom:16
-  }).setView(data.center, 12);
-  L.control.zoom({position:"topright"}).addTo(map);
-  L.control.scale({imperial:false, position:"bottomright"}).addTo(map);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{
-    attribution:"&copy; OpenStreetMap &copy; CARTO", subdomains:"abcd", maxZoom:19
-  }).addTo(map);
-  overlay=L.imageOverlay(src(), data.bounds, {opacity:1, interactive:false}).addTo(map);
-
-  roadLayer=L.layerGroup().addTo(map);
-  for(const r of hlRoads){
+function loadRoads(list, kind){
+  buckets=new Map();
+  roadLines=[];
+  if(roadLayer) roadLayer.clearLayers();
+  for(const r of list||[]){
     if(!r.xy || r.xy.length<2) continue;
     const line=L.polyline(r.xy, {
       weight:r.w || 1.4, opacity:0.95, lineCap:"round", lineJoin:"round",
@@ -393,16 +511,52 @@ Promise.all([
     line._vals={ winter:r.winter, june:r.june };
     line._name=(r.n||"").trim();
     line._cls=r.c||"";
+    line._f=r.f || 1;
+    const clat=r.xy.reduce((s,p)=>s+p[0],0)/r.xy.length;
+    const clon=r.xy.reduce((s,p)=>s+p[1],0)/r.xy.length;
+    line._clat=clat; line._clon=clon;
     line.addTo(roadLayer);
     roadLines.push(line);
     indexRoad(line);
   }
-  paintRoads();
-  drawChart();
+}
 
-  map.fitBounds(data.bounds,{padding:[20,20]});
-  story();
+Promise.all([
+  fetch("payload.json").then(r=>r.json()),
+  fetch("hyperlocal_roads.json").then(r=>r.json()).catch(()=>({roads:[]})),
+  fetch("live.json").then(r=> r.ok ? r.json() : null).catch(()=>null)
+]).then(([data, hl, liveData])=>{
+  payload=data;
+  live=liveData;
+  grids.winter=decode(data.grids.winter);
+  grids.june=decode(data.grids.june);
+  if(live && live.grid) grids.live=decode(live.grid);
+  const site=(data.monitors||[]).find(m => /Forman Christian/i.test(m.name||""));
+  measured={
+    winter:{ city:hourlyMedian(data.monitors||[], "winter"), site:seriesOf(site, "winter") },
+    june:{ city:hourlyMedian(data.monitors||[], "june"), site:seriesOf(site, "june") }
+  };
+  map=L.map("map",{
+    zoomControl:false, attributionControl:true, preferCanvas:true,
+    minZoom:11, maxZoom:16
+  }).setView(data.center, 12);
+  L.control.zoom({position:"topright"}).addTo(map);
+  L.control.scale({imperial:false, position:"bottomright"}).addTo(map);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{
+    attribution:"© OpenStreetMap © CARTO · AirTrack Global/RoW v1.3 · NASA GEOS-CF",
+    subdomains:"abcd", maxZoom:19
+  }).addTo(map);
+  mode = live ? "live" : "winter";
+  overlay=L.imageOverlay(src(), (live||data).bounds, {opacity:1, interactive:false}).addTo(map);
+  roadLayer=L.layerGroup().addTo(map);
 
+  const archiveRoads = hl.roads || data.roads;
+  const liveRoads = (live && live.roads && live.roads.length) ? live.roads : (data.roads||[]);
+  window._archiveRoads = archiveRoads;
+  window._liveRoads = liveRoads;
+  loadRoads(live ? liveRoads : archiveRoads);
+
+  map.fitBounds((live||data).bounds,{padding:[20,20]});
   map.on("mousemove", e=>{
     updateProbe(e.latlng, {x:e.originalEvent.clientX, y:e.originalEvent.clientY});
   });
@@ -419,12 +573,28 @@ Promise.all([
     const rect=svg.getBoundingClientRect();
     const x=(e.clientX-rect.left)/rect.width*232;
     const t=clamp((x-26)/(232-26-8),0,1);
-    setFrame(Math.round(t*23));
+    setFrame(Math.round(t*(nHours()-1)));
   });
+
+  if(live) setMode("live");
+  else {
+    document.getElementById("btn-live").hidden=true;
+    setMode("winter");
+  }
 });
 
-document.getElementById("btn-winter").onclick=()=>{season="winter"; setFrame(hour);};
-document.getElementById("btn-june").onclick=()=>{season="june"; setFrame(hour);};
+document.getElementById("btn-live").onclick=()=>{
+  loadRoads(window._liveRoads);
+  setMode("live");
+};
+document.getElementById("btn-winter").onclick=()=>{
+  loadRoads(window._archiveRoads);
+  setMode("winter");
+};
+document.getElementById("btn-june").onclick=()=>{
+  loadRoads(window._archiveRoads);
+  setMode("june");
+};
 document.getElementById("play").onclick=play;
 document.getElementById("scrub").oninput=e=>setFrame(+e.target.value);
 </script>
