@@ -12,5 +12,155 @@
   "regional_scale": 1.0,
   "vmax": 160.0,
   "pngs": 168,
-  "published_utc": "2026-08-27T09:42:54.492163+00:00"
+  "published_utc": "2026-08-27T13:27:24.903666+00:00",
+  "gates": {
+    "checked_utc": "2026-08-27T13:27:27.464069+00:00",
+    "passed": true,
+    "results": [
+      {
+        "name": "hour axis contiguous",
+        "passed": true,
+        "detail": "steps [np.float64(3600.0)]"
+      },
+      {
+        "name": "enough hours",
+        "passed": true,
+        "detail": "168 hours"
+      },
+      {
+        "name": "all valid times on the :30 centre",
+        "passed": true,
+        "detail": "minutes [30]"
+      },
+      {
+        "name": "analysis all lead 0",
+        "passed": true,
+        "detail": "leads [0]"
+      },
+      {
+        "name": "forecast leads monotonic",
+        "passed": true,
+        "detail": "0..119"
+      },
+      {
+        "name": "no hole at the join",
+        "passed": true,
+        "detail": "+1 h"
+      },
+      {
+        "name": "city PM2.5 plausible",
+        "passed": true,
+        "detail": "median 68.3 ug/m3 (allowed 5-600)"
+      },
+      {
+        "name": "field finite",
+        "passed": true,
+        "detail": "no NaN in the hourly medians"
+      },
+      {
+        "name": "one PNG per hour",
+        "passed": true,
+        "detail": "168 PNGs, 168 hours"
+      },
+      {
+        "name": "PNGs non-empty",
+        "passed": true,
+        "detail": "smallest 7259 bytes"
+      },
+      {
+        "name": "live.json hours match",
+        "passed": true,
+        "detail": "168"
+      },
+      {
+        "name": "street factor array intact",
+        "passed": true,
+        "detail": "1,050,840 bytes for 24x43,785"
+      },
+      {
+        "name": "street spread in range",
+        "passed": true,
+        "detail": "p95/p05 = 1.103 (allowed 1.02-1.6)"
+      },
+      {
+        "name": "street ramp present for every hour",
+        "passed": true,
+        "detail": "168 low / 168 high ranges"
+      },
+      {
+        "name": "no saturated factors",
+        "passed": true,
+        "detail": "0 at the ends"
+      },
+      {
+        "name": "all source segments modelled",
+        "passed": true,
+        "detail": "82,090 / 82,090"
+      },
+      {
+        "name": "enough source segments drawn",
+        "passed": true,
+        "detail": "29,928 source segments as 43,785 polylines"
+      },
+      {
+        "name": "motorway above residential",
+        "passed": true,
+        "detail": "ratio min/median 1.066/1.087 (want >= 1.04)"
+      },
+      {
+        "name": "primary above residential",
+        "passed": true,
+        "detail": "ratio min/median 1.033/1.047 (want >= 1.02)"
+      },
+      {
+        "name": "within-class street variation",
+        "passed": true,
+        "detail": "residential p95/p05 min/median 1.063/1.083"
+      }
+    ]
+  },
+  "validation": {
+    "status": "not requested",
+    "role": "optional background-field diagnostic; not a street-layer gate"
+  },
+  "street_diagnostics": {
+    "basis": "packed display polylines; sensors are not a street-layer test",
+    "class_factor_median": {
+      "motorway": 1.0824,
+      "primary": 1.0424,
+      "secondary": 0.9906,
+      "residential": 0.9953
+    },
+    "class_vs_residential_ratio": {
+      "motorway": {
+        "minimum": 1.0662,
+        "median": 1.0875,
+        "hours_above": 24,
+        "hours": 24
+      },
+      "primary": {
+        "minimum": 1.0331,
+        "median": 1.0473,
+        "hours_above": 24,
+        "hours": 24
+      },
+      "secondary": {
+        "minimum": 0.9858,
+        "median": 0.9953,
+        "hours_above": 1,
+        "hours": 24
+      }
+    },
+    "residential_within_class_p95_p05": {
+      "minimum": 1.063,
+      "median": 1.0831
+    },
+    "known_exception": "secondary median is slightly below residential in most slices; this is disclosed and is not represented as a complete class hierarchy"
+  },
+  "prior_manifest": {
+    "analysis_start_utc": "2026-08-24T09:30:00+00:00",
+    "analysis_end_utc": "2026-08-26T08:30:00+00:00",
+    "forecast_issue_utc": "2026-08-26T09:30:00+00:00",
+    "forecast_end_utc": "2026-08-31T08:30:00+00:00"
+  }
 }
