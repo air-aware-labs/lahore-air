@@ -30,6 +30,10 @@ Known limits are stated rather than hidden:
 - **Transfer.** Hyperlocal v2.11 was trained in London. Here it is run inside
   its training envelope and used only as an hour-normalised relative factor;
   this is a showcase transfer, not a Lahore calibration.
+- **Feature coverage.** The daily head receives all 17 expected columns; the
+  hourly head receives 120 of 207. The other 87 are explicitly zero-filled in
+  the build manifest, so this is a v2.11-derived layer rather than a claim of
+  complete production feature parity.
 - **Road hierarchy.** Secondary roads remain a known exception: their median
   factor is slightly below residential in 23 of 24 slices. Motorway and primary
   directionality passes; a complete class ordering does not.
