@@ -96,6 +96,31 @@
   .pill[data-src="forecast"]{color:#ffd2b3;border-color:rgba(255,97,10,.45)}
   .pill[data-src="stale"]{color:#ffb4a2;border-color:rgba(255,90,60,.6);background:rgba(255,90,60,.12)}
   .title small .warn{color:#ffb4a2;font-weight:600}
+
+  /* Seasonal confidence. Amber for a season we have never scored, red for the
+     one we scored and failed — the distinction is the point, so they must not
+     look the same.
+
+     Near-opaque rather than the page's usual glass: .brand sets a `filter`,
+     which makes it a containing block, and backdrop-filter inside a filtered
+     ancestor samples the subtree rather than the map behind it. Over a bright
+     field this text has to stay readable, so it carries its own ground. */
+  .season{
+    margin-top:10px;padding:9px 11px;border-radius:12px;
+    border:1px solid rgba(255,183,77,.5);background:rgba(14,10,18,.90);
+    font-family:system-ui,-apple-system,sans-serif;max-width:34ch;
+    box-shadow:0 10px 30px rgba(0,0,0,.45)
+  }
+  .season[data-regime="reduced"]{border-color:rgba(255,110,80,.6)}
+  .season b{
+    display:block;font:650 10px/1.2 system-ui,sans-serif;letter-spacing:.06em;
+    text-transform:uppercase;color:#ffd8a8;margin-bottom:5px
+  }
+  .season[data-regime="reduced"] b{color:#ffb4a2}
+  .season p{margin:0;font:500 11px/1.45 system-ui,sans-serif;color:#e8dee4}
+  .season p.head{font-weight:650;color:#fff;margin-bottom:4px}
+  .season p.head[hidden]{display:none}
+  .season[hidden]{display:none}
   #scrub{width:min(38vw,280px);accent-color:#ff610a;cursor:pointer}
 
   .chart{
@@ -138,6 +163,9 @@
     .dock{width:calc(100% - 20px);border-radius:22px}
     #scrub{width:100%;flex:1 1 100%}
     .chart{width:min(256px, calc(100% - 28px))}
+    .season{max-width:min(34ch, calc(100vw - 150px));padding:8px 10px}
+    .season p#season-detail{display:none}
+    .season p.head{font-size:10.5px;line-height:1.4}
     .leaflet-control-attribution{
       position:fixed;top:235px;right:8px;bottom:auto;margin:0!important;
       max-width:126px;padding:3px 4px;text-align:right;font-size:8px;line-height:1.2;
@@ -159,6 +187,11 @@
     <p id="lede">When the air turns, and which streets carry it.</p>
     <p id="story"></p>
     <small id="built"></small>
+    <div class="season" id="season" hidden>
+      <b id="season-label"></b>
+      <p class="head" id="season-head"></p>
+      <p id="season-detail"></p>
+    </div>
   </div>
 </div>
 <div class="legend" aria-hidden="true">
@@ -205,12 +238,21 @@ const HIT=0.00042;
 const probe=()=>document.getElementById("probe");
 
 function pad(n, w=2){ return String(n).padStart(w,"0"); }
+
+// Where this build's data lives. On the bucket the shell is stable and every
+// build is an immutable directory, so the page asks a small pointer which run
+// is current — that pointer is the only object a publish rewrites, which is what
+// stops a reader seeing half of one run and half of the next. On GitHub Pages or
+// a local checkout there is no pointer and the files sit beside the page, so RUN
+// stays empty and every path below is unchanged.
+let RUN = "";
+function asset(p){ return RUN + p; }
 function isLive(){ return mode==="live" && live && live.hours && live.hours.length; }
 function nHours(){ return isLive() ? live.hours.length : 24; }
 function vmax(){ return isLive() ? live.vmax : (payload && payload.vmax) || 220; }
 function src(){
-  if(isLive()) return `fields/live/${pad(hour,3)}.png`;
-  return `fields/${mode}/${pad(hour)}.png`;
+  if(isLive()) return asset(`fields/live/${pad(hour,3)}.png`);
+  return asset(`fields/${mode}/${pad(hour)}.png`);
 }
 function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
 function lerp(a,b,t){ return a+(b-a)*t; }
@@ -666,7 +708,7 @@ function buildStreetLayer(){
 function loadStreets(){
   if(streets || streetsPending) return Promise.resolve();
   streetsPending=true;
-  return fetch("streets.json").then(r=>{
+  return fetch(asset("streets.json")).then(r=>{
     if(!r.ok) throw new Error(`streets.json ${r.status}`);
     return r.json();
   }).then(js=>{
@@ -690,7 +732,7 @@ function loadStreets(){
 }
 function loadArchive(){
   if(archiveRoads) return Promise.resolve(archiveRoads);
-  return fetch("hyperlocal_roads.json").then(r=> r.ok ? r.json() : {roads:[]})
+  return fetch(asset("hyperlocal_roads.json")).then(r=> r.ok ? r.json() : {roads:[]})
     .catch(()=>({roads:[]}))
     .then(hl=>{ archiveRoads=(hl.roads&&hl.roads.length)?hl.roads:(payload.roads||[]); return archiveRoads; });
 }
@@ -717,10 +759,17 @@ function loadRoads(list, kind){
   }
 }
 
-Promise.all([
-  fetch("payload.json").then(r=>r.json()),
-  fetch("live.json").then(r=> r.ok ? r.json() : null).catch(()=>null)
-]).then(([data, liveData])=>{
+// Resolve the current run before anything else is fetched, so every asset in
+// this page-load comes from one build.
+fetch("current.json").then(r=> r.ok ? r.json() : null).catch(()=>null)
+.then(ptr=>{
+  if(ptr && ptr.run_prefix) RUN = ptr.run_prefix;
+  return Promise.all([
+    fetch(asset("payload.json")).then(r=>r.json()),
+    fetch(asset("live.json")).then(r=> r.ok ? r.json() : null).catch(()=>null)
+  ]);
+})
+.then(([data, liveData])=>{
   payload=data;
   live=liveData;
   grids.winter=decode(data.grids.winter);
@@ -751,6 +800,22 @@ Promise.all([
       map.getContainer().style.background="#0b0910";
     }
   });
+  // Seasonal confidence, computed in the build (season.py) against the real
+  // scorecard rather than re-derived here. Only shown when the window touches a
+  // season the model was not validated in; in the June-like regime it stays out
+  // of the way.
+  const seasonInfo = (live && live.season) || (data && data.season);
+  if(seasonInfo && seasonInfo.show_banner){
+    const box=document.getElementById("season");
+    box.dataset.regime=seasonInfo.regime||"transition";
+    document.getElementById("season-label").textContent=seasonInfo.label||"";
+    const head=document.getElementById("season-head");
+    head.textContent=seasonInfo.headline||"";
+    head.hidden=!seasonInfo.headline;
+    document.getElementById("season-detail").textContent=seasonInfo.detail||"";
+    box.hidden=false;
+  }
+
   mode = live ? "live" : "winter";
   overlay=L.imageOverlay(src(), (live||data).bounds, {opacity:1, interactive:false}).addTo(map);
   roadLayer=L.layerGroup().addTo(map);
