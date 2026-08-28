@@ -97,9 +97,10 @@
   .pill[data-src="stale"]{color:#ffb4a2;border-color:rgba(255,90,60,.6);background:rgba(255,90,60,.12)}
   .title small .warn{color:#ffb4a2;font-weight:600}
 
-  /* Seasonal confidence. Amber for a season we have never scored, red for the
-     one we scored and failed — the distinction is the point, so they must not
-     look the same.
+  /* Seasonal context. Deliberately informational, not a warning: this states
+     what evidence exists for the season on screen, and in winter that is a fact
+     about Lahore's instrument coverage rather than a fault in the model. A red
+     alarm treatment would say the opposite of what the words say.
 
      Near-opaque rather than the page's usual glass: .brand sets a `filter`,
      which makes it a containing block, and backdrop-filter inside a filtered
@@ -111,12 +112,10 @@
     font-family:system-ui,-apple-system,sans-serif;max-width:34ch;
     box-shadow:0 10px 30px rgba(0,0,0,.45)
   }
-  .season[data-regime="reduced"]{border-color:rgba(255,110,80,.6)}
   .season b{
     display:block;font:650 10px/1.2 system-ui,sans-serif;letter-spacing:.06em;
     text-transform:uppercase;color:#ffd8a8;margin-bottom:5px
   }
-  .season[data-regime="reduced"] b{color:#ffb4a2}
   .season p{margin:0;font:500 11px/1.45 system-ui,sans-serif;color:#e8dee4}
   .season p.head{font-weight:650;color:#fff;margin-bottom:4px}
   .season p.head[hidden]{display:none}
