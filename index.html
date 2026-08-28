@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title>Lahore · AirTrack</title>
-<meta name="description" content="When Lahore's air turns, and which streets carry it. Modelled hourly by AirTrack from NASA GEOS-CF — not a measurement.">
+<meta name="description" content="A rolling AirTrack street-level air-quality model for Lahore.">
 <meta property="og:title" content="Lahore · AirTrack">
-<meta property="og:description" content="When the air turns, and which streets carry it — recent hours and the days ahead. Modelled, not measured.">
+<meta property="og:description" content="When Lahore's air turns, and which streets carry it.">
 <meta property="og:image" content="og.png">
 <link rel="icon" href="favicon.svg">
 <link rel="stylesheet" href="vendor/leaflet.css">
@@ -97,28 +97,17 @@
   .pill[data-src="stale"]{color:#ffb4a2;border-color:rgba(255,90,60,.6);background:rgba(255,90,60,.12)}
   .title small .warn{color:#ffb4a2;font-weight:600}
 
-  /* Seasonal context. Deliberately informational, not a warning: this states
-     what evidence exists for the season on screen, and in winter that is a fact
-     about Lahore's instrument coverage rather than a fault in the model. A red
-     alarm treatment would say the opposite of what the words say.
-
-     Near-opaque rather than the page's usual glass: .brand sets a `filter`,
-     which makes it a containing block, and backdrop-filter inside a filtered
-     ancestor samples the subtree rather than the map behind it. Over a bright
-     field this text has to stay readable, so it carries its own ground. */
+  /* One seasonal label, not a second reading panel. The scientific evidence
+     stays in the project documentation rather than competing with the map. */
   .season{
-    margin-top:10px;padding:9px 11px;border-radius:12px;
-    border:1px solid rgba(255,183,77,.5);background:rgba(14,10,18,.90);
-    font-family:system-ui,-apple-system,sans-serif;max-width:34ch;
-    box-shadow:0 10px 30px rgba(0,0,0,.45)
+    display:inline-block;margin-top:9px;padding:6px 8px;border-radius:999px;
+    border:1px solid rgba(255,183,77,.5);background:rgba(14,10,18,.88);
+    font-family:system-ui,-apple-system,sans-serif
   }
   .season b{
-    display:block;font:650 10px/1.2 system-ui,sans-serif;letter-spacing:.06em;
-    text-transform:uppercase;color:#ffd8a8;margin-bottom:5px
+    display:block;font:650 10px/1 system-ui,sans-serif;letter-spacing:.06em;
+    text-transform:uppercase;color:#ffd8a8
   }
-  .season p{margin:0;font:500 11px/1.45 system-ui,sans-serif;color:#e8dee4}
-  .season p.head{font-weight:650;color:#fff;margin-bottom:4px}
-  .season p.head[hidden]{display:none}
   .season[hidden]{display:none}
   #scrub{width:min(38vw,280px);accent-color:#ff610a;cursor:pointer}
 
@@ -162,9 +151,10 @@
     .dock{width:calc(100% - 20px);border-radius:22px}
     #scrub{width:100%;flex:1 1 100%}
     .chart{width:min(256px, calc(100% - 28px))}
-    .season{max-width:min(34ch, calc(100vw - 150px));padding:8px 10px}
-    .season p#season-detail{display:none}
-    .season p.head{font-size:10.5px;line-height:1.4}
+    /* The secondary copy goes on a phone, but not a warning: a stale run or a
+       missing street layer must stay visible at every width. */
+    .title #lede,.title #built:not([data-warn]){display:none}
+    .season{padding:6px 8px}
     .leaflet-control-attribution{
       position:fixed;top:235px;right:8px;bottom:auto;margin:0!important;
       max-width:126px;padding:3px 4px;text-align:right;font-size:8px;line-height:1.2;
@@ -188,8 +178,6 @@
     <small id="built"></small>
     <div class="season" id="season" hidden>
       <b id="season-label"></b>
-      <p class="head" id="season-head"></p>
-      <p id="season-detail"></p>
     </div>
   </div>
 </div>
@@ -245,13 +233,13 @@ function pad(n, w=2){ return String(n).padStart(w,"0"); }
 // a local checkout there is no pointer and the files sit beside the page, so RUN
 // stays empty and every path below is unchanged.
 let RUN = "";
-function asset(p){ return RUN + p; }
+function runAsset(p){ return RUN + p; }
 function isLive(){ return mode==="live" && live && live.hours && live.hours.length; }
 function nHours(){ return isLive() ? live.hours.length : 24; }
 function vmax(){ return isLive() ? live.vmax : (payload && payload.vmax) || 220; }
 function src(){
-  if(isLive()) return asset(`fields/live/${pad(hour,3)}.png`);
-  return asset(`fields/${mode}/${pad(hour)}.png`);
+  if(isLive()) return runAsset(`fields/live/${pad(hour,3)}.png`);
+  return `fields/${mode}/${pad(hour)}.png`;
 }
 function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
 function lerp(a,b,t){ return a+(b-a)*t; }
@@ -624,15 +612,14 @@ function story(){
     pill.dataset.src = w.stale ? "stale" : (future ? "forecast" : h.source);
     pill.textContent = w.stale ? "Not current"
       : (future ? "Forecast" : (h.source==="analysis" ? "Analysis" : "Past forecast"));
-    const extra = live.forecast_issue_utc
-      ? ` · GEOS-CF ${new Date(live.forecast_issue_utc).toISOString().slice(0,16).replace("T"," ")}Z`
-      : "";
-    const prov = `<span class="prov">Modelled by AirTrack from NASA GEOS-CF. Not a measurement.</span><br>`;
+    const updated = formatBuilt(live.built_utc).replace(/^Updated /,"updated ");
+    const prov = `<span class="prov">AirTrack model</span>${updated ? ` · ${updated}` : ""}`;
     const streetWarning = streetLoadError
       ? `<span class="warn">Street layer unavailable — area field only.</span><br>` : "";
     built.innerHTML = w.stale
-      ? `<span class="warn">This run ended ${staleText(w)} ago — not current air quality.</span><br>${streetWarning}${prov}${formatBuilt(live.built_utc)}${extra}`
-      : streetWarning + prov + formatBuilt(live.built_utc) + extra;
+      ? `<span class="warn">This run ended ${staleText(w)} ago — not current air quality.</span><br>${streetWarning}${prov}`
+      : streetWarning + prov;
+    built.toggleAttribute("data-warn", Boolean(w.stale || streetLoadError));
   } else {
     document.getElementById("lede").textContent = payload.story[mode];
     document.getElementById("story").textContent = "Measured that day alongside the model.";
@@ -707,7 +694,7 @@ function buildStreetLayer(){
 function loadStreets(){
   if(streets || streetsPending) return Promise.resolve();
   streetsPending=true;
-  return fetch(asset("streets.json")).then(r=>{
+  return fetch(runAsset("streets.json")).then(r=>{
     if(!r.ok) throw new Error(`streets.json ${r.status}`);
     return r.json();
   }).then(js=>{
@@ -731,7 +718,7 @@ function loadStreets(){
 }
 function loadArchive(){
   if(archiveRoads) return Promise.resolve(archiveRoads);
-  return fetch(asset("hyperlocal_roads.json")).then(r=> r.ok ? r.json() : {roads:[]})
+  return fetch("hyperlocal_roads.json").then(r=> r.ok ? r.json() : {roads:[]})
     .catch(()=>({roads:[]}))
     .then(hl=>{ archiveRoads=(hl.roads&&hl.roads.length)?hl.roads:(payload.roads||[]); return archiveRoads; });
 }
@@ -764,8 +751,8 @@ fetch("current.json").then(r=> r.ok ? r.json() : null).catch(()=>null)
 .then(ptr=>{
   if(ptr && ptr.run_prefix) RUN = ptr.run_prefix;
   return Promise.all([
-    fetch(asset("payload.json")).then(r=>r.json()),
-    fetch(asset("live.json")).then(r=> r.ok ? r.json() : null).catch(()=>null)
+    fetch("payload.json").then(r=>r.json()),
+    fetch(runAsset("live.json")).then(r=> r.ok ? r.json() : null).catch(()=>null)
   ]);
 })
 .then(([data, liveData])=>{
@@ -799,19 +786,13 @@ fetch("current.json").then(r=> r.ok ? r.json() : null).catch(()=>null)
       map.getContainer().style.background="#0b0910";
     }
   });
-  // Seasonal confidence, computed in the build (season.py) against the real
-  // scorecard rather than re-derived here. Only shown when the window touches a
-  // season the model was not validated in; in the June-like regime it stays out
-  // of the way.
+  // The build supplies one compact seasonal label. Validation details live in
+  // the technical documentation, not over the customer-facing map.
   const seasonInfo = (live && live.season) || (data && data.season);
   if(seasonInfo && seasonInfo.show_banner){
     const box=document.getElementById("season");
     box.dataset.regime=seasonInfo.regime||"transition";
     document.getElementById("season-label").textContent=seasonInfo.label||"";
-    const head=document.getElementById("season-head");
-    head.textContent=seasonInfo.headline||"";
-    head.hidden=!seasonInfo.headline;
-    document.getElementById("season-detail").textContent=seasonInfo.detail||"";
     box.hidden=false;
   }
 
