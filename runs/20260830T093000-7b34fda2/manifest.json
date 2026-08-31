@@ -1,0 +1,287 @@
+{
+  "built_utc": "2026-08-31T11:52:01.684189+00:00",
+  "engine": "global_row_v1.3",
+  "prior": "NASA GEOS-CF v2",
+  "analysis_start_utc": "2026-08-28T09:30:00+00:00",
+  "analysis_end_utc": "2026-08-30T08:30:00+00:00",
+  "forecast_issue_utc": "2026-08-30T09:30:00+00:00",
+  "forecast_end_utc": "2026-09-04T08:30:00+00:00",
+  "n_hours": 168,
+  "n_analysis": 48,
+  "n_forecast": 120,
+  "regional_scale": 1.0,
+  "vmax": 130.0,
+  "pngs": 168,
+  "published_utc": "2026-08-31T11:52:11.475055+00:00",
+  "season": {
+    "regime": "validated",
+    "majority_regime": "validated",
+    "worst_regime": "validated",
+    "hours_by_regime": {
+      "validated": 168,
+      "transition": 0,
+      "reduced": 0
+    },
+    "show_banner": false,
+    "label": ""
+  },
+  "forecast_source": "opendap",
+  "mirror_run_id": null,
+  "gates": {
+    "checked_utc": "2026-08-31T11:55:15.761725+00:00",
+    "passed": true,
+    "results": [
+      {
+        "name": "hour axis contiguous",
+        "passed": true,
+        "detail": "steps [np.float64(3600.0)]"
+      },
+      {
+        "name": "enough hours",
+        "passed": true,
+        "detail": "168 hours"
+      },
+      {
+        "name": "all valid times on the :30 centre",
+        "passed": true,
+        "detail": "minutes [30]"
+      },
+      {
+        "name": "analysis all lead 0",
+        "passed": true,
+        "detail": "leads [0]"
+      },
+      {
+        "name": "forecast leads monotonic",
+        "passed": true,
+        "detail": "0..119"
+      },
+      {
+        "name": "no hole at the join",
+        "passed": true,
+        "detail": "+1 h"
+      },
+      {
+        "name": "city PM2.5 plausible",
+        "passed": true,
+        "detail": "median 60.5 ug/m3 (allowed 5-600)"
+      },
+      {
+        "name": "field finite",
+        "passed": true,
+        "detail": "no NaN in the hourly medians"
+      },
+      {
+        "name": "one PNG per hour",
+        "passed": true,
+        "detail": "168 PNGs, 168 hours"
+      },
+      {
+        "name": "PNGs non-empty",
+        "passed": true,
+        "detail": "smallest 7109 bytes"
+      },
+      {
+        "name": "live.json hours match",
+        "passed": true,
+        "detail": "168"
+      },
+      {
+        "name": "street factor array intact",
+        "passed": true,
+        "detail": "1,050,840 bytes for 24x43,785"
+      },
+      {
+        "name": "street spread in range",
+        "passed": true,
+        "detail": "p95/p05 = 1.119 (allowed 1.02-1.6)"
+      },
+      {
+        "name": "street ramp present for every hour",
+        "passed": true,
+        "detail": "168 low / 168 high ranges"
+      },
+      {
+        "name": "no saturated factors",
+        "passed": true,
+        "detail": "0 at the ends"
+      },
+      {
+        "name": "all source segments modelled",
+        "passed": true,
+        "detail": "82,090 / 82,090"
+      },
+      {
+        "name": "enough source segments drawn",
+        "passed": true,
+        "detail": "29,928 source segments as 43,785 polylines"
+      },
+      {
+        "name": "v2.11 feature coverage explicit",
+        "passed": true,
+        "detail": "daily 17/17; hourly 120/207 (87 zero-filled)"
+      },
+      {
+        "name": "motorway above residential",
+        "passed": true,
+        "detail": "ratio min/median 1.057/1.087 (want >= 1.04)"
+      },
+      {
+        "name": "primary above residential",
+        "passed": true,
+        "detail": "ratio min/median 1.043/1.047 (want >= 1.02)"
+      },
+      {
+        "name": "within-class street variation",
+        "passed": true,
+        "detail": "residential p95/p05 min/median 1.068/1.088"
+      }
+    ]
+  },
+  "validation": {
+    "status": "not requested",
+    "role": "optional background-field diagnostic; not a street-layer gate"
+  },
+  "street_diagnostics": {
+    "basis": "packed display polylines; sensors are not a street-layer test",
+    "feature_coverage": {
+      "daily_head": {
+        "expected": 17,
+        "present": 17,
+        "zero_filled": 0,
+        "missing_columns": []
+      },
+      "hourly_head": {
+        "expected": 207,
+        "present": 120,
+        "zero_filled": 87,
+        "missing_columns": [
+          "log1p_nearest_traffic_signal_m",
+          "log1p_nearest_crossing_m",
+          "log1p_nearest_bus_stop_m",
+          "log1p_nearest_roundabout_m",
+          "log1p_nearest_major_junction_m",
+          "log1p_traffic_signal_count_0_25m",
+          "log1p_traffic_signal_count_25_50m",
+          "log1p_traffic_signal_count_50_100m",
+          "log1p_traffic_signal_count_100_250m",
+          "log1p_crossing_count_0_25m",
+          "log1p_crossing_count_25_50m",
+          "log1p_crossing_count_50_100m",
+          "log1p_crossing_count_100_250m",
+          "log1p_bus_stop_count_0_25m",
+          "log1p_bus_stop_count_25_50m",
+          "log1p_bus_stop_count_50_100m",
+          "log1p_bus_stop_count_100_250m",
+          "log1p_roundabout_count_0_25m",
+          "log1p_roundabout_count_25_50m",
+          "log1p_roundabout_count_50_100m",
+          "log1p_roundabout_count_100_250m",
+          "log1p_junction_count_0_25m",
+          "log1p_junction_count_25_50m",
+          "log1p_junction_count_50_100m",
+          "log1p_junction_count_100_250m",
+          "log1p_major_junction_count_0_25m",
+          "log1p_major_junction_count_25_50m",
+          "log1p_major_junction_count_50_100m",
+          "log1p_major_junction_count_100_250m",
+          "log1p_traffic_signal_density_exp25",
+          "log1p_traffic_signal_density_exp50",
+          "log1p_crossing_density_exp25",
+          "log1p_crossing_density_exp50",
+          "log1p_bus_stop_density_exp25",
+          "log1p_bus_stop_density_exp50",
+          "log1p_roundabout_density_exp25",
+          "log1p_roundabout_density_exp50",
+          "log1p_junction_density_exp25",
+          "log1p_junction_density_exp50",
+          "log1p_major_junction_density_exp25",
+          "log1p_major_junction_density_exp50",
+          "elevation_m",
+          "tpi_300m",
+          "slope_deg",
+          "has_lidar_terrain",
+          "site_type_Rural Background",
+          "site_type_Suburban Background",
+          "site_type_Suburban Industrial",
+          "site_type_Urban Background",
+          "site_type_Urban Industrial",
+          "site_type_Urban Traffic",
+          "street_class_active_or_open",
+          "street_class_dense_local_street",
+          "street_class_local_street",
+          "street_class_low_road_context",
+          "street_class_major_road",
+          "street_class_unknown",
+          "micro_active_travel_corridor",
+          "micro_dense_local_grid",
+          "micro_local_access_street",
+          "micro_major_road_influence",
+          "micro_open_or_low_road",
+          "micro_primary_road_edge",
+          "micro_signal_bus_major_road",
+          "micro_strategic_road_edge",
+          "micro_unknown",
+          "micro_urban_distributor_edge",
+          "nearest_group_active",
+          "nearest_group_major",
+          "nearest_group_minor",
+          "nearest_group_none",
+          "nearest_group_other",
+          "dominant_group_50_active",
+          "dominant_group_50_major",
+          "dominant_group_50_minor",
+          "dominant_group_50_none",
+          "dominant_group_50_other",
+          "dominant_group_100_active",
+          "dominant_group_100_major",
+          "dominant_group_100_minor",
+          "dominant_group_100_none",
+          "dominant_group_100_other",
+          "dominant_group_250_active",
+          "dominant_group_250_major",
+          "dominant_group_250_minor",
+          "dominant_group_250_none",
+          "dominant_group_250_other"
+        ]
+      }
+    },
+    "class_factor_median": {
+      "motorway": 1.0824,
+      "primary": 1.0424,
+      "secondary": 0.9906,
+      "residential": 0.9953
+    },
+    "class_vs_residential_ratio": {
+      "motorway": {
+        "minimum": 1.0567,
+        "median": 1.0875,
+        "hours_above": 24,
+        "hours": 24
+      },
+      "primary": {
+        "minimum": 1.0426,
+        "median": 1.0473,
+        "hours_above": 24,
+        "hours": 24
+      },
+      "secondary": {
+        "minimum": 0.9905,
+        "median": 0.9953,
+        "hours_above": 0,
+        "hours": 24
+      }
+    },
+    "residential_within_class_p95_p05": {
+      "minimum": 1.0678,
+      "median": 1.088
+    },
+    "known_exception": "secondary median is slightly below residential in most slices; this is disclosed and is not represented as a complete class hierarchy"
+  },
+  "prior_manifest": {
+    "analysis_start_utc": "2026-08-28T09:30:00+00:00",
+    "analysis_end_utc": "2026-08-30T08:30:00+00:00",
+    "forecast_issue_utc": "2026-08-30T09:30:00+00:00",
+    "forecast_end_utc": "2026-09-04T08:30:00+00:00"
+  }
+}
