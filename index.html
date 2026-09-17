@@ -60,7 +60,7 @@
   }
   .bar{
     width:12px;border-radius:99px;
-    background:linear-gradient(#ffe1b0,#ff610a,#d65a4a,#b0346e,#28183c);
+    background:linear-gradient(#ffe1b0,#ff610a,#d65a4a,#b0346e,#76264e);
     border:1px solid var(--line);
   }
   .ticks{display:flex;flex-direction:column;justify-content:space-between;padding:2px 0}
@@ -215,7 +215,7 @@
 </div>
 <script src="vendor/leaflet.js"></script>
 <script>
-const STOPS = [[0,40,28,62],[0.22,176,52,110],[0.45,214,92,78],[0.70,255,97,10],[1,255,214,150]];
+const STOPS = [[0,118,42,78],[0.22,176,52,110],[0.45,214,92,78],[0.70,255,97,10],[1,255,214,150]];
 let mode="live", hour=0, playing=false, timer=null;
 let overlay, map, payload, live=null, grids={}, roadLayer, roadLines=[];
 let streets=null, streetGeom=null, streetFac=null, archiveRoads=null, streetsPending=false;
@@ -420,10 +420,18 @@ function updateProbe(ll, xy){
     el.style.transform=`translate(${x}px,${y}px)`;
   }
 }
+function streetTint(val){
+  // Street-to-street spread is ~1.1×, so a relative stretch is needed to
+  // see which roads are dirtier. The floor is the absolute colour of that
+  // concentration: an 80 µg/m³ road must not paint as the legend's 0.
+  const top=Math.max(vmax(), 1e-6);
+  const [rlo, rhi]=roadRamp();
+  const tAbs=clamp(val/top, 0, 1);
+  const tRel=clamp((val-rlo)/Math.max(1e-6, rhi-rlo), 0, 1);
+  return tAbs + tRel*(1-tAbs)*0.65;
+}
 function paintRoads(){
   const liveNow=isLive();
-  const [rlo, rhi]=roadRamp();
-  const rspan=Math.max(1e-6, rhi-rlo);
   // Hoisted out of the loop: 30k roads repaint on every frame.
   const off=(liveNow && streets) ? sliceIndex()*streets.n_roads : 0;
   const lo=streets?streets.fac_lo:1, span=streets?(streets.fac_hi-streets.fac_lo):0;
@@ -440,8 +448,8 @@ function paintRoads(){
     } else {
       val = (L._vals[mode] || [])[hour];
     }
-    if(val==null) { L.setStyle({ color:"#334" }); continue; }
-    L.setStyle({ color: hexAt((val-rlo)/rspan) });
+    if(val==null) { L.setStyle({ color: hexAt(0.42) }); continue; }
+    L.setStyle({ color: hexAt(streetTint(val)) });
   }
 }
 function hourlyMedian(monitors, key){
