@@ -664,14 +664,22 @@ function setMode(next){
   setChartCopy();
   if(overlay) overlay.setUrl(src());
   setFrame(hour);
+  if(playing) setPlaying(true);
 }
-function play(){
-  playing=!playing;
+function prefersStill(){
+  return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+function setPlaying(on){
+  playing=!!on;
   document.getElementById("icon-play").hidden=playing;
   document.getElementById("icon-pause").hidden=!playing;
+  document.getElementById("play").setAttribute("aria-label",
+    playing ? "Pause the window" : "Play the window");
+  clearInterval(timer);
+  timer=null;
   if(playing) timer=setInterval(()=>setFrame(hour+1), isLive()?220:480);
-  else clearInterval(timer);
 }
+function play(){ setPlaying(!playing); }
 
 function buildStreetLayer(){
   buckets=new Map(); roadLines=[];
@@ -820,6 +828,7 @@ fetch("current.json").then(r=> r.ok ? r.json() : null).catch(()=>null)
     const rect=svg.getBoundingClientRect();
     const x=(e.clientX-rect.left)/rect.width*232;
     const t=clamp((x-26)/(232-26-8),0,1);
+    setPlaying(false);
     setFrame(Math.round(t*(nHours()-1)));
   });
 
@@ -828,6 +837,7 @@ fetch("current.json").then(r=> r.ok ? r.json() : null).catch(()=>null)
     document.getElementById("btn-live").hidden=true;
     setMode("winter");
   }
+  if(!prefersStill()) setTimeout(()=>setPlaying(true), 400);
 });
 
 function toMode(next){
@@ -846,7 +856,10 @@ document.getElementById("btn-live").onclick=()=>toMode("live");
 document.getElementById("btn-winter").onclick=()=>toMode("winter");
 document.getElementById("btn-june").onclick=()=>toMode("june");
 document.getElementById("play").onclick=play;
-document.getElementById("scrub").oninput=e=>setFrame(+e.target.value);
+document.getElementById("scrub").oninput=e=>{
+  setPlaying(false);
+  setFrame(+e.target.value);
+};
 </script>
 </body>
 </html>
