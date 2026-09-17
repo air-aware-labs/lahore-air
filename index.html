@@ -22,7 +22,7 @@
   #map{position:fixed;inset:0}
   .leaflet-container{background:#0b0910;font:12px system-ui,sans-serif;cursor:crosshair}
   .leaflet-overlay-pane img.field-overlay{image-rendering:auto}
-  /* Carto dark is the intended basemap. OSM invert is only a fallback. */
+  /* Esri dark-gray is the intended basemap. OSM invert is only a fallback. */
   body.osm-fallback .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.58) saturate(.72)}
   .leaflet-control-attribution{background:transparent!important;color:rgba(255,255,255,.4);margin:0 12px 8px 0}
   .leaflet-control-attribution a{color:rgba(255,255,255,.5)}
@@ -784,23 +784,29 @@ fetch("current.json").then(r=> r.ok ? r.json() : null).catch(()=>null)
     zoomControl:false, attributionControl:true, preferCanvas:true,
     minZoom:11, maxZoom:16
   }).setView(data.center, 12);
+  map.createPane("basemapLabels");
+  map.getPane("basemapLabels").style.zIndex=450;
+  map.getPane("basemapLabels").style.pointerEvents="none";
   map.attributionControl.setPrefix(false);
   L.control.zoom({position:"topright"}).addTo(map);
   L.control.scale({imperial:false, position:"bottomright"}).addTo(map);
-  // Dark Carto tiles so dirty air can glow instead of sitting on inverted OSM.
-  // If they fail, fall back to OSM with a CSS invert rather than a blank map.
-  const tiles=L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{
-    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains:"abcd", maxZoom:19, crossOrigin:true
+  // Esri's dark-gray canvas is keyless and already dark, so dirty air can glow
+  // without a CSS invert. If the tiles fail, fall back to inverted OSM.
+  const tiles=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",{
+    attribution:'Tiles © <a href="https://www.esri.com/">Esri</a>',
+    maxZoom:16, crossOrigin:true
+  }).addTo(map);
+  const labels=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}",{
+    attribution:"", maxZoom:16, crossOrigin:true, pane:"basemapLabels"
   }).addTo(map);
   let tileFails=0;
   tiles.on("tileerror", ()=>{
     if(++tileFails!==12) return;
-    tiles.remove();
+    tiles.remove(); labels.remove();
     document.body.classList.add("osm-fallback");
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
       attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
-      maxZoom:19, crossOrigin:true
+      maxZoom:16, crossOrigin:true
     }).addTo(map);
   });
   // The build supplies one compact seasonal label. Validation details live in
